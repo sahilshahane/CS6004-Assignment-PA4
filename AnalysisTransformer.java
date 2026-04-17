@@ -170,8 +170,14 @@ class Fact {
 class PointsToProblem
         extends DefaultJimpleIFDSTabulationProblem<Fact, InterproceduralCFG<Unit, SootMethod>> {
 
+    IFDSSolver<Unit, Fact, SootMethod, InterproceduralCFG<Unit, SootMethod>> solver;
+
     public PointsToProblem(InterproceduralCFG<Unit, SootMethod> icfg) {
         super(icfg); // Pass the Call Graph wrapper to the parent
+    }
+
+    public void setSolver(IFDSSolver<Unit, Fact, SootMethod, InterproceduralCFG<Unit, SootMethod>> solver) {
+        this.solver = solver;
     }
 
     @Override
@@ -312,6 +318,7 @@ class PointsToProblem
 
                             } else if (lhs instanceof InstanceFieldRef && rhs instanceof Local) { // r1.f = r0 (STORE)
                                 var ifRef = (InstanceFieldRef) lhs;
+                                SootFieldRef field = ifRef.getFieldRef();
 
                                 if (source.local.equals(ifRef.getBase())
                                         && (source.getFields().length == 1)
@@ -319,18 +326,45 @@ class PointsToProblem
                                     res.remove(source); // kill r1.f
                                 }
 
-                                if (source.target.equals(getFact(ifRef.getBase()).target)) {
-                                    var target = source.target;
+                                // if (objTargets.contains(source.target)) {
+                                // if (source.fields.length == 0) {
+                                // res.add(new Fact(source.local, new SootFieldRef[] { field }, source.target,
+                                // source.getContexts()));
+                                // }
+                                // }
 
-                                    // var facts[] = getFactsCoonectedToObj( target(r1) );
-                                    // kill references of facts.a
-                                    // add All objects of rhs to fact.a
-                                }
+                                // set localVars
+                                // remove localVars.a
+
+                                // if (source.target.equals(getFact().target)) {
+                                // var target = source.target;
+
+                                // // var facts[] = getFactsCoonectedToObj( target(r1) );
+                                // // kill references of facts.a
+                                // // add All objects of rhs to fact.a
+                                // }
 
                                 if (source.local.equals(rhs)) {
-                                    res.add(new Fact(((Local) ifRef.getBase()),
-                                            new SootFieldRef[] { ifRef.getFieldRef() }, source.target,
-                                            source.getContexts()));
+
+                                    var objTargets = solver.ifdsResultsAt(curr).stream()
+                                            .filter(prevF -> prevF != zeroValue()
+                                                    && prevF.local.equals(ifRef.getBase()) && prevF.fields.length == 0)
+                                            .map(f -> f.target)
+                                            .toList();
+
+                                    solver.ifdsResultsAt(curr).stream()
+                                            .filter(prevF -> prevF != zeroValue()
+                                                    && (prevF.fields.length == 0)
+                                                    && objTargets.stream()
+                                                            .anyMatch(target -> prevF.target.equals(target)))
+                                            .forEach(f -> {
+                                                res.add(new Fact(
+                                                        f.local,
+                                                        new SootFieldRef[] { field },
+                                                        source.target,
+                                                        source.getContexts()));
+                                            });
+
                                 }
                             }
                         }
@@ -420,6 +454,7 @@ public class AnalysisTransformer extends SceneTransformer {
         JimpleBasedInterproceduralCFG icfg = new JimpleBasedInterproceduralCFG();
         PointsToProblem problem = new PointsToProblem(icfg);
         IFDSSolver<Unit, Fact, SootMethod, InterproceduralCFG<Unit, SootMethod>> solver = new IFDSSolver<>(problem);
+        problem.setSolver(solver);
 
         // SootMethod main = Scene.v().getMainMethod();
         // for (Unit u : main.getActiveBody().getUnits()) {

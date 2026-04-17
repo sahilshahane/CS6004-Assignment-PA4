@@ -62,6 +62,7 @@ public class PA4 {
         opt.put("verbose", "true");
         opt.put("on-fly-cg", "true");
         opt.put("t", "0");
+        opt.put("field-sensitive", "true");
         SparkTransformer.v().transform("cg.spark", opt);
 
         Options.v().set_num_threads(1);

@@ -14,43 +14,36 @@ public class Test extends java.lang.Object
 
     public static void main(java.lang.String[])
     {
-        testcases.Test1.Event $r7, $r8;
-        testcases.Test1.SubEvent1 $r5;
-        java.lang.String[] r3;
-        java.lang.Object $r4;
-        testcases.Test1.SubEvent2 $r6;
-        boolean $z0;
+        java.io.PrintStream $r5;
+        T $r0, $r1, $r2, $r3, r4;
+        java.lang.String[] r6;
 
-        r3 := @parameter0: java.lang.String[];
+        r6 := @parameter0: java.lang.String[];
 
-        $r4 = new java.lang.Object;
+        $r0 = new T;
 
-        specialinvoke $r4.<java.lang.Object: void <init>()>();
+        specialinvoke $r0.<T: void <init>()>();
 
-        $z0 = $r4 instanceof java.lang.Object;
+        $r1 = new T;
 
-        if $z0 == false goto label1;
+        specialinvoke $r1.<T: void <init>()>();
 
-        $r5 = new testcases.Test1.SubEvent1;
+        $r0.<T: T a> = $r1;
 
-        specialinvoke $r5.<testcases.Test1.SubEvent1: void <init>()>();
+        $r3 = $r0.<T: T a>;
 
-        $r7 = (testcases.Test1.Event) $r5;
+        $r2 = new T;
 
-        virtualinvoke $r7.<testcases.Test1.Event: void dosome()>();
+        specialinvoke $r2.<T: void <init>()>();
 
-        goto label2;
+        $r3.<T: T a> = $r2;
 
-     label1:
-        $r6 = new testcases.Test1.SubEvent2;
+        r4 = $r0.<T: T a>;
 
-        specialinvoke $r6.<testcases.Test1.SubEvent2: void <init>()>();
+        $r5 = <java.lang.System: java.io.PrintStream out>;
 
-        $r8 = (testcases.Test1.Event) $r6;
+        virtualinvoke $r5.<java.io.PrintStream: void println(java.lang.Object)>(r4);
 
-        virtualinvoke $r8.<testcases.Test1.Event: void dosome()>();
-
-     label2:
         return;
     }
 }
