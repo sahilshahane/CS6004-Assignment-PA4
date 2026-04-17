@@ -1,20 +1,14 @@
 import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
 
 import heros.FlowFunction;
 import heros.FlowFunctions;
 import heros.InterproceduralCFG;
-import heros.flowfunc.Identity;
 import heros.solver.IFDSSolver;
-import jas.Var;
 import soot.*;
 import soot.jimple.*;
-import soot.jimple.spark.SparkTransformer;
 import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.ide.DefaultJimpleIFDSTabulationProblem;
 import soot.jimple.toolkits.ide.icfg.JimpleBasedInterproceduralCFG;
-import soot.toolkits.graph.BriefUnitGraph;
-import soot.toolkits.graph.UnitGraph;
 
 class Node {
     private String id;
@@ -152,15 +146,33 @@ class PointsToProblem
                             res.add(new Fact(formalParameters.get(i), source.fields, source.target));
                         }
                     }
-
                     return res;
                 };
             }
 
             @Override
-            public FlowFunction<Fact> getCallToReturnFlowFunction(Unit arg0, Unit arg1) {
+            public FlowFunction<Fact> getCallToReturnFlowFunction(Unit callSiteStmt, Unit returnSite) {
                 // System.out.println("getCallToReturnFlowFunction " + arg0);
-                return Identity.v();
+                return source -> {
+                    if (source == zeroValue())
+                        return Collections.singleton(source);
+
+                    var res = new HashSet<Fact>();
+
+                    Stmt stmt = (Stmt) callSiteStmt;
+
+                    if (stmt instanceof AssignStmt) {
+                        var lhs = ((AssignStmt) stmt).getLeftOp();
+
+                        if (lhs instanceof Local && source.local.equals(lhs)) {
+                            return Collections.emptySet();
+                        }
+                    }
+
+                    res.add(source);
+
+                    return res;
+                };
             }
 
             @Override
