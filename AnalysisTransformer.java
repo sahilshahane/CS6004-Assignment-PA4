@@ -346,24 +346,29 @@ class PointsToProblem
 
                                 if (source.local.equals(rhs)) {
 
-                                    var objTargets = solver.ifdsResultsAt(curr).stream()
-                                            .filter(prevF -> prevF != zeroValue()
-                                                    && prevF.local.equals(ifRef.getBase()) && prevF.fields.length == 0)
-                                            .map(f -> f.target)
-                                            .toList();
+                                    res.add(new Fact((Local) ifRef.getBase(),
+                                            new SootFieldRef[] { field },
+                                            source.target,
+                                            source.getContexts()));
 
-                                    solver.ifdsResultsAt(curr).stream()
-                                            .filter(prevF -> prevF != zeroValue()
-                                                    && (prevF.fields.length == 0)
-                                                    && objTargets.stream()
-                                                            .anyMatch(target -> prevF.target.equals(target)))
-                                            .forEach(f -> {
-                                                res.add(new Fact(
-                                                        f.local,
-                                                        new SootFieldRef[] { field },
-                                                        source.target,
-                                                        source.getContexts()));
-                                            });
+                                    // var objTargets = solver.ifdsResultsAt(curr).stream()
+                                    // .filter(prevF -> prevF != zeroValue()
+                                    // && prevF.local.equals(ifRef.getBase()) && prevF.fields.length == 0)
+                                    // .map(f -> f.target)
+                                    // .toList();
+
+                                    // solver.ifdsResultsAt(curr).stream()
+                                    // .filter(prevF -> prevF != zeroValue()
+                                    // && (prevF.fields.length == 0)
+                                    // && objTargets.stream()
+                                    // .anyMatch(target -> prevF.target.equals(target)))
+                                    // .forEach(f -> {
+                                    // res.add(new Fact(
+                                    // f.local,
+                                    // new SootFieldRef[] { field },
+                                    // source.target,
+                                    // source.getContexts()));
+                                    // });
 
                                 }
                             }
@@ -441,6 +446,151 @@ class Helper {
 }
 
 public class AnalysisTransformer extends SceneTransformer {
+
+    private void propagateAliasField(
+            Collection<Unit> startUnits,
+            Set<Local> aliases,
+            SootFieldRef field,
+            Set<Node> rhsTargets,
+            IFDSSolver<Unit, Fact, SootMethod, InterproceduralCFG<Unit, SootMethod>> solver,
+            JimpleBasedInterproceduralCFG icfg,
+            Map<Unit, Set<Fact>> extraFacts,
+            Map<Unit, Set<Fact>> killedFacts) {
+
+        Deque<Unit> queue = new ArrayDeque<>(startUnits);
+        Set<Unit> visited = new HashSet<>();
+
+        while (!queue.isEmpty()) {
+            Unit curr = queue.poll();
+            if (!visited.add(curr)) continue;
+
+            Set<Fact> currFacts = new HashSet<>(solver.ifdsResultsAt(curr));
+            Set<Fact> ck = killedFacts.get(curr);
+            Set<Fact> ce = extraFacts.get(curr);
+            if (ck != null) currFacts.removeAll(ck);
+            if (ce != null) currFacts.addAll(ce);
+
+            for (Fact f : currFacts) {
+                if (f != Fact.ZERO && f.fields.length == 1
+                        && f.fields[0].equals(field) && aliases.contains(f.local))
+                    killedFacts.computeIfAbsent(curr, k -> new HashSet<>()).add(f);
+            }
+
+            for (Local alias : aliases) {
+                for (Node rhsTarget : rhsTargets) {
+                    extraFacts.computeIfAbsent(curr, k -> new HashSet<>())
+                            .add(new Fact(alias, new SootFieldRef[] { field },
+                                    rhsTarget, Collections.emptyList()));
+                }
+            }
+
+            for (Unit succ : icfg.getSuccsOf(curr)) {
+                if (!visited.contains(succ)) queue.add(succ);
+            }
+        }
+    }
+
+    private void computeAliasedFacts(
+            IFDSSolver<Unit, Fact, SootMethod, InterproceduralCFG<Unit, SootMethod>> solver,
+            JimpleBasedInterproceduralCFG icfg,
+            Map<Unit, Set<Fact>> extraFacts,
+            Map<Unit, Set<Fact>> killedFacts) {
+
+        for (SootClass sc : Scene.v().getApplicationClasses()) {
+            for (SootMethod sm : sc.getMethods()) {
+                if (!sm.hasActiveBody()) continue;
+
+                for (Unit u : sm.getActiveBody().getUnits()) {
+                    if (!(u instanceof AssignStmt)) continue;
+                    AssignStmt assign = (AssignStmt) u;
+                    if (!(assign.getLeftOp() instanceof InstanceFieldRef)) continue;
+                    if (!(assign.getRightOp() instanceof Local)) continue;
+
+                    InstanceFieldRef ifRef = (InstanceFieldRef) assign.getLeftOp();
+                    Local base = (Local) ifRef.getBase();
+                    Local rhsLocal = (Local) assign.getRightOp();
+                    SootFieldRef field = ifRef.getFieldRef();
+
+                    // Corrected facts before this store (solver + prior alias patches)
+                    Set<Fact> beforeFacts = new HashSet<>(solver.ifdsResultsAt(u));
+                    Set<Fact> killed = killedFacts.get(u);
+                    Set<Fact> extra = extraFacts.get(u);
+                    if (killed != null) beforeFacts.removeAll(killed);
+                    if (extra != null) beforeFacts.addAll(extra);
+
+                    // Find base's target objects
+                    Set<Node> baseTargets = new HashSet<>();
+                    for (Fact f : beforeFacts) {
+                        if (f != Fact.ZERO && f.fields.length == 0 && f.local.equals(base))
+                            baseTargets.add(f.target);
+                    }
+                    if (baseTargets.isEmpty()) continue;
+
+                    // Find rhs's target objects
+                    Set<Node> rhsTargets = new HashSet<>();
+                    for (Fact f : beforeFacts) {
+                        if (f != Fact.ZERO && f.fields.length == 0 && f.local.equals(rhsLocal))
+                            rhsTargets.add(f.target);
+                    }
+                    if (rhsTargets.isEmpty()) continue;
+
+                    // Intra-procedural aliases: other locals in same scope pointing to same objects
+                    Set<Local> intraAliases = new HashSet<>();
+                    for (Fact f : beforeFacts) {
+                        if (f != Fact.ZERO && f.fields.length == 0
+                                && !f.local.equals(base) && baseTargets.contains(f.target))
+                            intraAliases.add(f.local);
+                    }
+
+                    if (!intraAliases.isEmpty())
+                        propagateAliasField(icfg.getSuccsOf(u), intraAliases, field, rhsTargets,
+                                solver, icfg, extraFacts, killedFacts);
+
+                    // Inter-procedural aliases: use context to find the call site, then
+                    // find ALL caller locals pointing to the same object as base.
+                    // This handles both parameter-mapped locals and LOAD-derived locals.
+                    for (Fact f : beforeFacts) {
+                        if (f != Fact.ZERO && f.fields.length == 0
+                                && f.local.equals(base) && !f.getContexts().isEmpty()) {
+
+                            Unit callSite = f.getContexts().get(0);
+                            Node baseTarget = f.target;
+
+                            // Facts at call site (in caller scope)
+                            Set<Fact> callerFacts = new HashSet<>(solver.ifdsResultsAt(callSite));
+                            Set<Fact> cck = killedFacts.get(callSite);
+                            Set<Fact> cce = extraFacts.get(callSite);
+                            if (cck != null) callerFacts.removeAll(cck);
+                            if (cce != null) callerFacts.addAll(cce);
+
+                            // All caller locals pointing to the same object as base
+                            Set<Local> callerAliases = new HashSet<>();
+                            for (Fact cf : callerFacts) {
+                                if (cf != Fact.ZERO && cf.fields.length == 0
+                                        && cf.target.equals(baseTarget))
+                                    callerAliases.add(cf.local);
+                            }
+
+                            if (!callerAliases.isEmpty())
+                                propagateAliasField(icfg.getReturnSitesOfCallAt(callSite),
+                                        callerAliases, field, rhsTargets,
+                                        solver, icfg, extraFacts, killedFacts);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private Set<Fact> augmented(Set<Fact> base, Set<Fact> extra, Set<Fact> killed) {
+        if ((extra == null || extra.isEmpty()) && (killed == null || killed.isEmpty()))
+            return base != null ? base : Collections.emptySet();
+        Set<Fact> result = new HashSet<>(base != null ? base : Collections.emptySet());
+        if (killed != null) result.removeAll(killed);
+        if (extra != null) result.addAll(extra);
+        return result;
+    }
+
     @Override
     protected void internalTransform(String phaseName, Map<String, String> options) {
         CallGraph cg = Scene.v().getCallGraph();
@@ -466,6 +616,10 @@ public class AnalysisTransformer extends SceneTransformer {
 
         solver.solve();
 
+        Map<Unit, Set<Fact>> extraFacts = new HashMap<>();
+        Map<Unit, Set<Fact>> killedFacts = new HashMap<>();
+        computeAliasedFacts(solver, icfg, extraFacts, killedFacts);
+
         for (SootClass sc : Scene.v().getApplicationClasses()) {
             for (SootMethod sm : sc.getMethods()) {
                 if (sm.hasActiveBody()) {
@@ -476,27 +630,17 @@ public class AnalysisTransformer extends SceneTransformer {
                         // To get facts *after* the statement, we query the successors
                         List<Unit> succs = icfg.getSuccsOf(u);
                         if (succs.isEmpty()) {
-                            // E.g., for ReturnStmt, we might just use the results at the stmt itself
-                            // if there's no intra-procedural successor, though it technically represents
-                            // "before"
-                            Set<Fact> facts = solver.ifdsResultsAt(u);
-                            if (facts != null) {
-                                for (Fact f : facts) {
-                                    if (f != Fact.ZERO) {
-                                        System.out.println("    => (before exit) " + f);
-                                    }
-                                }
+                            Set<Fact> facts = augmented(solver.ifdsResultsAt(u), extraFacts.get(u), killedFacts.get(u));
+                            for (Fact f : facts) {
+                                if (f != Fact.ZERO)
+                                    System.out.println("    => (before exit) " + f);
                             }
                         } else {
-                            // Print facts reaching the successors
                             for (Unit succ : succs) {
-                                Set<Fact> facts = solver.ifdsResultsAt(succ);
-                                if (facts != null) {
-                                    for (Fact f : facts) {
-                                        if (f != Fact.ZERO) {
-                                            System.out.println("    => " + f);
-                                        }
-                                    }
+                                Set<Fact> facts = augmented(solver.ifdsResultsAt(succ), extraFacts.get(succ), killedFacts.get(succ));
+                                for (Fact f : facts) {
+                                    if (f != Fact.ZERO)
+                                        System.out.println("    => " + f);
                                 }
                             }
                         }
