@@ -14,53 +14,43 @@ public class Test extends java.lang.Object
 
     public static void main(java.lang.String[])
     {
-        java.io.PrintStream $r1;
-        java.lang.String[] r6;
-        M $r0, $r2, $r4;
-        N $r3;
-        O $r5;
-        int $i0;
+        testcases.Test1.Event $r7, $r8;
+        testcases.Test1.SubEvent1 $r5;
+        java.lang.String[] r3;
+        java.lang.Object $r4;
+        testcases.Test1.SubEvent2 $r6;
+        boolean $z0;
 
-        r6 := @parameter0: java.lang.String[];
+        r3 := @parameter0: java.lang.String[];
 
-        $r0 = new M;
+        $r4 = new java.lang.Object;
 
-        specialinvoke $r0.<M: void <init>()>();
+        specialinvoke $r4.<java.lang.Object: void <init>()>();
 
-        $r0.<M: int x> = 8;
+        $z0 = $r4 instanceof java.lang.Object;
 
-        $r1 = <java.lang.System: java.io.PrintStream out>;
+        if $z0 == false goto label1;
 
-        $i0 = $r0.<M: int x>;
+        $r5 = new testcases.Test1.SubEvent1;
 
-        virtualinvoke $r1.<java.io.PrintStream: void println(int)>($i0);
+        specialinvoke $r5.<testcases.Test1.SubEvent1: void <init>()>();
 
-        $r2 = new M;
+        $r7 = (testcases.Test1.Event) $r5;
 
-        specialinvoke $r2.<M: void <init>()>();
+        virtualinvoke $r7.<testcases.Test1.Event: void dosome()>();
 
-        $r3 = new N;
+        goto label2;
 
-        specialinvoke $r3.<N: void <init>()>();
+     label1:
+        $r6 = new testcases.Test1.SubEvent2;
 
-        $r2.<M: int x> = 27;
+        specialinvoke $r6.<testcases.Test1.SubEvent2: void <init>()>();
 
-        $r2.<M: int y> = 125;
+        $r8 = (testcases.Test1.Event) $r6;
 
-        virtualinvoke $r3.<N: void foo(M)>($r2);
+        virtualinvoke $r8.<testcases.Test1.Event: void dosome()>();
 
-        $r4 = new M;
-
-        specialinvoke $r4.<M: void <init>()>();
-
-        $r5 = new O;
-
-        specialinvoke $r5.<O: void <init>()>();
-
-        $r4.<M: int x> = 343;
-
-        virtualinvoke $r5.<O: void foo(M)>($r4);
-
+     label2:
         return;
     }
 }
