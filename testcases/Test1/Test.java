@@ -21,12 +21,11 @@ public class Test {
     public static void main(String[] args) {
         Event b;
 
-        if((new Object()) instanceof Object){
+        if ((new Object()) instanceof Object) {
             b = new SubEvent1();
             b.dosome();
-        } 
-        else {
-            b = new SubEvent2()
+        } else {
+            b = new SubEvent2();
             b.dosome();
         }
     }

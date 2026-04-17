@@ -1,5 +1,3 @@
-package testcases.Test11;
-
 class T {
     public void A() {
         B();
