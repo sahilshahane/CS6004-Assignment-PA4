@@ -457,12 +457,26 @@ public class AnalysisTransformer extends SceneTransformer {
             Map<Unit, Set<Fact>> extraFacts,
             Map<Unit, Set<Fact>> killedFacts) {
 
-        Deque<Unit> queue = new ArrayDeque<>(startUnits);
-        Set<Unit> visited = new HashSet<>();
+        // Track (unit, pastMerge). Once BFS crosses a control merge, subsequent
+        // downstream units are "pastMerge": the store no longer dominates them,
+        // so strong-update kill would wipe out parallel branches' legitimate
+        // contributions.
+        Deque<Object[]> queue = new ArrayDeque<>();
+        for (Unit u : startUnits) queue.add(new Object[] { u, false });
+        Map<Unit, Boolean> visited = new HashMap<>();
 
         while (!queue.isEmpty()) {
-            Unit curr = queue.poll();
-            if (!visited.add(curr)) continue;
+            Object[] item = queue.poll();
+            Unit curr = (Unit) item[0];
+            boolean pastMerge = (Boolean) item[1];
+
+            boolean isMerge = icfg.getPredsOf(curr).size() > 1;
+            boolean nowPast = pastMerge || isMerge;
+
+            Boolean prev = visited.get(curr);
+            if (prev != null && prev.booleanValue() == nowPast) continue;
+            if (prev != null && prev.booleanValue() && !nowPast) continue; // stricter already visited
+            visited.put(curr, nowPast);
 
             Set<Fact> currFacts = new HashSet<>(solver.ifdsResultsAt(curr));
             Set<Fact> ck = killedFacts.get(curr);
@@ -470,10 +484,12 @@ public class AnalysisTransformer extends SceneTransformer {
             if (ck != null) currFacts.removeAll(ck);
             if (ce != null) currFacts.addAll(ce);
 
-            for (Fact f : currFacts) {
-                if (f != Fact.ZERO && f.fields.length == 1
-                        && f.fields[0].equals(field) && aliases.contains(f.local))
-                    killedFacts.computeIfAbsent(curr, k -> new HashSet<>()).add(f);
+            if (!nowPast) {
+                for (Fact f : currFacts) {
+                    if (f != Fact.ZERO && f.fields.length == 1
+                            && f.fields[0].equals(field) && aliases.contains(f.local))
+                        killedFacts.computeIfAbsent(curr, k -> new HashSet<>()).add(f);
+                }
             }
 
             for (Local alias : aliases) {
@@ -485,7 +501,7 @@ public class AnalysisTransformer extends SceneTransformer {
             }
 
             for (Unit succ : icfg.getSuccsOf(curr)) {
-                if (!visited.contains(succ)) queue.add(succ);
+                queue.add(new Object[] { succ, nowPast });
             }
         }
     }
@@ -546,24 +562,30 @@ public class AnalysisTransformer extends SceneTransformer {
                         propagateAliasField(icfg.getSuccsOf(u), intraAliases, field, rhsTargets,
                                 solver, icfg, extraFacts, killedFacts);
 
-                    // Inter-procedural aliases: use context to find the call site, then
-                    // find ALL caller locals pointing to the same object as base.
-                    // This handles both parameter-mapped locals and LOAD-derived locals.
+                    // Inter-procedural aliases: check base AND all intra aliases for call-site
+                    // contexts. Any local (base or intra alias) with a context lets us find
+                    // caller-scope locals pointing to the same object and propagate from return sites.
+                    Set<Local> allInScope = new HashSet<>(intraAliases);
+                    allInScope.add(base);
+
+                    // Deduplicate by (callSite, target) so we don't run the same BFS twice
+                    Set<String> seen = new HashSet<>();
                     for (Fact f : beforeFacts) {
                         if (f != Fact.ZERO && f.fields.length == 0
-                                && f.local.equals(base) && !f.getContexts().isEmpty()) {
+                                && allInScope.contains(f.local) && !f.getContexts().isEmpty()) {
 
                             Unit callSite = f.getContexts().get(0);
                             Node baseTarget = f.target;
+                            if (!seen.add(callSite.toString() + "|" + baseTarget)) continue;
 
                             // Facts at call site (in caller scope)
                             Set<Fact> callerFacts = new HashSet<>(solver.ifdsResultsAt(callSite));
                             Set<Fact> cck = killedFacts.get(callSite);
                             Set<Fact> cce = extraFacts.get(callSite);
-                            if (cck != null) callerFacts.removeAll(cck);
                             if (cce != null) callerFacts.addAll(cce);
+                            if (cck != null) callerFacts.removeAll(cck);
 
-                            // All caller locals pointing to the same object as base
+                            // All caller locals pointing to the same object
                             Set<Local> callerAliases = new HashSet<>();
                             for (Fact cf : callerFacts) {
                                 if (cf != Fact.ZERO && cf.fields.length == 0
@@ -571,9 +593,22 @@ public class AnalysisTransformer extends SceneTransformer {
                                     callerAliases.add(cf.local);
                             }
 
+                            // Context-specific rhsTargets: only values reachable
+                            // through THIS callSite, to avoid cross-contamination
+                            // between different call sites of the same method.
+                            Set<Node> ctxRhsTargets = new HashSet<>();
+                            for (Fact bf : beforeFacts) {
+                                if (bf != Fact.ZERO && bf.fields.length == 0
+                                        && bf.local.equals(rhsLocal)
+                                        && !bf.getContexts().isEmpty()
+                                        && bf.getContexts().get(0).equals(callSite))
+                                    ctxRhsTargets.add(bf.target);
+                            }
+                            if (ctxRhsTargets.isEmpty()) ctxRhsTargets = rhsTargets;
+
                             if (!callerAliases.isEmpty())
                                 propagateAliasField(icfg.getReturnSitesOfCallAt(callSite),
-                                        callerAliases, field, rhsTargets,
+                                        callerAliases, field, ctxRhsTargets,
                                         solver, icfg, extraFacts, killedFacts);
                         }
                     }
@@ -586,8 +621,8 @@ public class AnalysisTransformer extends SceneTransformer {
         if ((extra == null || extra.isEmpty()) && (killed == null || killed.isEmpty()))
             return base != null ? base : Collections.emptySet();
         Set<Fact> result = new HashSet<>(base != null ? base : Collections.emptySet());
-        if (killed != null) result.removeAll(killed);
-        if (extra != null) result.addAll(extra);
+        if (extra != null) result.addAll(extra);    // add first
+        if (killed != null) result.removeAll(killed); // then kill, so stale extras are removed
         return result;
     }
 

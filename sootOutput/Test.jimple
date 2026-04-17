@@ -12,16 +12,7 @@ public class Test extends java.lang.Object
         return;
     }
 
-    static Node identity(Node)
-    {
-        Node r0;
-
-        r0 := @parameter0: Node;
-
-        return r0;
-    }
-
-    static void setChild(Node, Node)
+    static void level2(Node, Node)
     {
         Node r0, r1;
 
@@ -34,33 +25,40 @@ public class Test extends java.lang.Object
         return;
     }
 
+    static void level1(Node, Node)
+    {
+        Node r0, r1;
+
+        r0 := @parameter0: Node;
+
+        r1 := @parameter1: Node;
+
+        staticinvoke <Test: void level2(Node,Node)>(r0, r1);
+
+        return;
+    }
+
     public static void main(java.lang.String[])
     {
-        java.io.PrintStream $r3, $r4;
-        Node $r0, r1, $r2;
-        java.lang.String[] r5;
+        java.io.PrintStream $r2;
+        Node $r0, $r1;
+        java.lang.String[] r3;
 
-        r5 := @parameter0: java.lang.String[];
+        r3 := @parameter0: java.lang.String[];
 
         $r0 = new Node;
 
         specialinvoke $r0.<Node: void <init>()>();
 
-        r1 = staticinvoke <Test: Node identity(Node)>($r0);
+        $r1 = new Node;
 
-        $r2 = new Node;
+        specialinvoke $r1.<Node: void <init>()>();
 
-        specialinvoke $r2.<Node: void <init>()>();
+        staticinvoke <Test: void level1(Node,Node)>($r0, $r1);
 
-        staticinvoke <Test: void setChild(Node,Node)>($r0, $r2);
+        $r2 = <java.lang.System: java.io.PrintStream out>;
 
-        $r3 = <java.lang.System: java.io.PrintStream out>;
-
-        virtualinvoke $r3.<java.io.PrintStream: void println(java.lang.Object)>($r0);
-
-        $r4 = <java.lang.System: java.io.PrintStream out>;
-
-        virtualinvoke $r4.<java.io.PrintStream: void println(java.lang.Object)>(r1);
+        virtualinvoke $r2.<java.io.PrintStream: void println(java.lang.Object)>($r0);
 
         return;
     }
