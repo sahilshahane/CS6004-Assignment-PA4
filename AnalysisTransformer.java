@@ -48,16 +48,47 @@ class Node {
 }
 
 class Fact {
-    Local local;
-    SootField fields[];
-    Node target;
+    final Local local;
+    final SootField fields[];
+    final Node target;
+    private final List<Unit> contexts;
+    private final int hashCode;
 
-    static Fact ZERO = new Fact(null, null, null);
+    static final int CONTEXT_LIMIT = 1;
 
-    public Fact(Local n1, SootField[] fields, Node n2) {
+    static final Fact ZERO = new Fact(null, null, null, Collections.emptyList());
+
+    public Fact(Local n1, SootField[] fields, Node n2, List<Unit> contexts) {
         this.local = n1;
         this.target = n2;
         this.fields = fields;
+        this.contexts = contexts != null ? contexts : Collections.emptyList();
+
+        this.hashCode = computeHashCode(); // warn: initialize all the variables before computing the hashcode
+    }
+
+    public List<Unit> getContexts() {
+        return this.contexts;
+    }
+
+    public Fact(Local n1, SootField[] fields, Node n2) {
+        this(n1, fields, n2, Collections.emptyList());
+    }
+
+    private String getContextsKey() {
+        if (contexts.isEmpty()) {
+            return "";
+        }
+
+        StringBuilder key = new StringBuilder();
+        for (int i = 0; i < contexts.size(); i++) {
+            int lineNum = contexts.get(i).getJavaSourceStartLineNumber();
+            key.append(lineNum > 0 ? lineNum : "?");
+            if (i < contexts.size() - 1) {
+                key.append("|");
+            }
+        }
+        return key.toString();
     }
 
     @Override
@@ -67,15 +98,28 @@ class Fact {
 
         if (!(obj instanceof Fact))
             return false;
+        Fact other = (Fact) obj;
 
-        return this.local.equals(((Fact) obj).local) &&
-                this.target.equals(((Fact) obj).target) &&
-                Arrays.equals(this.fields, ((Fact) obj).fields);
+        return Objects.equals(this.local, other.local) &&
+                Objects.equals(this.target, other.target) &&
+                Arrays.equals(this.fields, other.fields) &&
+                Objects.equals(this.contexts, other.contexts);
     }
 
     @Override
     public int hashCode() {
-        return (31 * Objects.hash(local, target)) + Arrays.hashCode(fields);
+        return this.hashCode;
+    }
+
+    public int computeHashCode() {
+        if (this == Fact.ZERO)
+            return 31;
+
+        return Objects.hash(
+                local != null ? local.getName() : null,
+                target != null ? target.get_id() : null,
+                contexts)
+                + Arrays.hashCode(fields);
     }
 
     @Override
@@ -83,7 +127,32 @@ class Fact {
         if (this == Fact.ZERO)
             return "ZERO_FACT";
 
-        return local + " " + fields + " " + target;
+        // Shorten the context string for readability
+        // String ctxStr = contexts.isEmpty() ? "" : " [ctx: " + contexts.size() + "]";
+
+        String ctxKey = getContextsKey();
+        String ctxStr = ctxKey.isEmpty() ? "" : " [ctx: " + ctxKey.replace('|', ',') + "]";
+
+        return local + " " + fields + " " + target + ctxStr;
+    }
+
+    // Helper to push a new context (k=3)
+    public List<Unit> pushContext(Unit callSite) {
+        List<Unit> newCtx = new ArrayList<>(this.contexts);
+        newCtx.add(0, callSite); // Add to front
+        if (newCtx.size() > Fact.CONTEXT_LIMIT) {
+            newCtx.remove(newCtx.size() - 1);
+        }
+        return Collections.unmodifiableList(newCtx);
+    }
+
+    // Helper to pop the context on return
+    public List<Unit> popContext() {
+        if (this.contexts.isEmpty())
+            return this.contexts;
+        List<Unit> newCtx = new ArrayList<>(this.contexts);
+        newCtx.remove(0); // Remove the most recent call site
+        return Collections.unmodifiableList(newCtx);
     }
 }
 
@@ -134,7 +203,7 @@ class PointsToProblem
                         // If our fact is about the variable 't', map it to 'this' in A()
                         if (source.local.equals(iie.getBase())) {
                             res.add(new Fact(callee.getActiveBody().getThisLocal(), source.fields,
-                                    source.target));
+                                    source.target, source.pushContext(callStmt)));
                         }
                     }
 
@@ -143,7 +212,8 @@ class PointsToProblem
                         var callerArg = ie.getArg(i);
 
                         if (source.local.equals(callerArg)) {
-                            res.add(new Fact(formalParameters.get(i), source.fields, source.target));
+                            res.add(new Fact(formalParameters.get(i), source.fields, source.target,
+                                    source.pushContext(callStmt)));
                         }
                     }
                     return res;
@@ -194,7 +264,6 @@ class PointsToProblem
                         Value rhs = assignStmt.getRightOp();
 
                         if (source == zeroValue()) {
-
                             if (lhs instanceof Local && rhs instanceof NewExpr) { // i0 = new T();
                                 var newExpr = (NewExpr) rhs;
 
@@ -206,8 +275,13 @@ class PointsToProblem
 
                         else { // handle non-zero fact
                             if (lhs instanceof Local && rhs instanceof Local) {
+                                if (source.local.equals(lhs)) {
+                                    res.remove(source); // kill existing fact
+                                }
+
                                 if (source.local.equals(rhs)) {
-                                    res.add(new Fact((Local) lhs, source.fields, source.target));
+                                    // Propagate the rhs fact to lhs
+                                    res.add(new Fact((Local) lhs, source.fields, source.target, source.getContexts()));
                                 }
                             }
                         }
@@ -240,7 +314,7 @@ class PointsToProblem
 
                         if (returnOp instanceof Local && callerLhs instanceof Local) {
                             if (source.local.equals(returnOp)) {
-                                res.add(new Fact((Local) callerLhs, source.fields, source.target));
+                                res.add(new Fact((Local) callerLhs, source.fields, source.target, source.popContext()));
                             }
                         } else {
                             // TODO: handle constant return values
