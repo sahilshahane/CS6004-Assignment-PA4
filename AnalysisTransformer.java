@@ -49,7 +49,7 @@ class Node {
 
 class Fact {
     final Local local;
-    final SootField fields[];
+    final SootFieldRef fields[];
     final Node target;
     private final List<Unit> contexts;
     private final int hashCode;
@@ -58,9 +58,9 @@ class Fact {
 
     static final Fact ZERO = new Fact(null, null, null, Collections.emptyList());
 
-    public Fact(Local n1, SootField[] fields, Node n2, List<Unit> contexts) {
-        this.local = n1;
-        this.target = n2;
+    public Fact(Local local, SootFieldRef[] fields, Node target, List<Unit> contexts) {
+        this.local = local;
+        this.target = target;
         this.fields = fields;
         this.contexts = contexts != null ? contexts : Collections.emptyList();
 
@@ -71,8 +71,8 @@ class Fact {
         return this.contexts;
     }
 
-    public Fact(Local n1, SootField[] fields, Node n2) {
-        this(n1, fields, n2, Collections.emptyList());
+    public SootFieldRef[] getFields() {
+        return this.fields;
     }
 
     private String getContextsKey() {
@@ -127,13 +127,24 @@ class Fact {
         if (this == Fact.ZERO)
             return "ZERO_FACT";
 
-        // Shorten the context string for readability
-        // String ctxStr = contexts.isEmpty() ? "" : " [ctx: " + contexts.size() + "]";
+        StringBuilder fieldsStr = new StringBuilder();
+        if (fields != null && fields.length > 0) {
+            fieldsStr.append("[");
+            for (int i = 0; i < fields.length; i++) {
+                fieldsStr.append(fields[i] != null ? fields[i].name() : "?");
+                if (i < fields.length - 1) {
+                    fieldsStr.append(", ");
+                }
+            }
+            fieldsStr.append("]");
+        } else {
+            fieldsStr.append("[]");
+        }
 
         String ctxKey = getContextsKey();
         String ctxStr = ctxKey.isEmpty() ? "" : " [ctx: " + ctxKey.replace('|', ',') + "]";
 
-        return local + " " + fields + " " + target + ctxStr;
+        return local + " " + fieldsStr + " " + target + ctxStr;
     }
 
     // Helper to push a new context (k=3)
@@ -263,29 +274,66 @@ class PointsToProblem
                         Value lhs = assignStmt.getLeftOp();
                         Value rhs = assignStmt.getRightOp();
 
+                        if (lhs instanceof Local && source != zeroValue() && source.local.equals(lhs)) { // r0 = xx
+                            res.remove(source);
+                        }
+
                         if (source == zeroValue()) {
                             if (lhs instanceof Local && rhs instanceof NewExpr) { // i0 = new T();
                                 var newExpr = (NewExpr) rhs;
 
-                                res.add(new Fact((Local) lhs, new SootField[0],
-                                        Node.make_obj(newExpr.getType(), lineNumber)));
+                                res.add(new Fact(
+                                        (Local) lhs,
+                                        new SootFieldRef[0],
+                                        Node.make_obj(newExpr.getType(), lineNumber),
+                                        source.getContexts()));
+
                                 // System.out.println(res);
                             }
-                        }
 
-                        else { // handle non-zero fact
-                            if (lhs instanceof Local && rhs instanceof Local) {
-                                if (source.local.equals(lhs)) {
-                                    res.remove(source); // kill existing fact
-                                }
-
+                        } else { // handle non-zero fact
+                            if (lhs instanceof Local && rhs instanceof Local) { // r0 = r1
                                 if (source.local.equals(rhs)) {
                                     // Propagate the rhs fact to lhs
                                     res.add(new Fact((Local) lhs, source.fields, source.target, source.getContexts()));
                                 }
+                            } else if (lhs instanceof Local && rhs instanceof InstanceFieldRef) { // r0 = r1.f (LOAD)
+                                var ifRef = (InstanceFieldRef) rhs;
+
+                                if (source.local.equals(ifRef.getBase())
+                                        && (source.getFields().length == 1)
+                                        && ((source.getFields()[0]).equals(ifRef.getFieldRef()))) {
+
+                                    res.add(new Fact(
+                                            (Local) lhs,
+                                            new SootFieldRef[] {}, source.target,
+                                            source.getContexts()));
+                                }
+
+                            } else if (lhs instanceof InstanceFieldRef && rhs instanceof Local) { // r1.f = r0 (STORE)
+                                var ifRef = (InstanceFieldRef) lhs;
+
+                                if (source.local.equals(ifRef.getBase())
+                                        && (source.getFields().length == 1)
+                                        && ((source.getFields()[0]).equals(ifRef.getFieldRef()))) {
+                                    res.remove(source); // kill r1.f
+                                }
+
+                                if (source.target.equals(getFact(ifRef.getBase()).target)) {
+                                    var target = source.target;
+
+                                    // var facts[] = getFactsCoonectedToObj( target(r1) );
+                                    // kill references of facts.a
+                                    // add All objects of rhs to fact.a
+                                }
+
+                                if (source.local.equals(rhs)) {
+                                    res.add(new Fact(((Local) ifRef.getBase()),
+                                            new SootFieldRef[] { ifRef.getFieldRef() }, source.target,
+                                            source.getContexts()));
+                                }
                             }
                         }
-
                     }
 
                     return res;
