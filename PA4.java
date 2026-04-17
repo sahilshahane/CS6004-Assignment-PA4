@@ -76,6 +76,9 @@ public class PA4 {
         AnalysisTransformer analysis = new AnalysisTransformer();
         PackManager.v().getPack("wjtp").add(new Transform("wjtp.analysis", analysis));
 
+        PackManager.v().getPack("wjtp").add(
+            new Transform("wjtp.check_inliner", new CheckInliner())
+        );
         // 6. Execute
         // DO NOT call soot.Main.main(args) here.
         PackManager.v().runPacks();
