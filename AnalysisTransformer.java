@@ -239,7 +239,7 @@ class Helper {
 
         Stmt originalInvokeStmt = (soot.jimple.Stmt) ((JimpleStatement) stmt).getDelegate();
 
-        VirtualInvokeExpr originalExpr = (soot.jimple.VirtualInvokeExpr) originalInvokeStmt.getInvokeExpr();
+        var originalExpr = (soot.jimple.InstanceInvokeExpr) originalInvokeStmt.getInvokeExpr();
 
         soot.Body callerBody = callerMethod.getActiveBody();
 
