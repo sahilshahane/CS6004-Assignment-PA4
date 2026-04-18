@@ -23,111 +23,100 @@ public class AnalysisTransformer extends SceneTransformer {
     @Override
     protected void internalTransform(String phaseName, Map<String, String> options) {
 
-        for (int i = 0; i < 1; i++) {
-            SootFrameworkScope scope = new SootFrameworkScope(
-                    Scene.v(),
-                    Scene.v().getCallGraph(),
-                    Scene.v().getEntryPoints(),
-                    DataFlowScope.EXCLUDE_PHANTOM_CLASSES);
+        SootFrameworkScope scope = new SootFrameworkScope(
+                Scene.v(),
+                Scene.v().getCallGraph(),
+                Scene.v().getEntryPoints(),
+                DataFlowScope.EXCLUDE_PHANTOM_CLASSES);
 
-            BoomerangOptions boomerangOptions = BoomerangOptions.builder()
-                    .enableAllowMultipleQueries(true)
-                    .build();
+        BoomerangOptions boomerangOptions = BoomerangOptions.builder()
+                .enableAllowMultipleQueries(true)
+                .build();
 
-            Boomerang solver = new Boomerang(scope, boomerangOptions);
+        Boomerang solver = new Boomerang(scope, boomerangOptions);
 
-            var listener = Scene.v().getReachableMethods().listener();
+        var listener = Scene.v().getReachableMethods().listener();
 
-            while (listener.hasNext()) {
-                var momc = listener.next();
-                SootMethod callerMethod = momc.method();
+        while (listener.hasNext()) {
+            var momc = listener.next();
+            SootMethod callerMethod = momc.method();
 
-                if (!callerMethod.hasActiveBody() || callerMethod.isJavaLibraryMethod())
+            if (!callerMethod.hasActiveBody() || callerMethod.isJavaLibraryMethod())
+                continue;
+
+            var method = JimpleMethod.of(callerMethod, Scene.v());
+            var cfg = method.getControlFlowGraph();
+
+            for (Statement stmt : method.getStatements()) {
+                if (!stmt.containsInvokeExpr())
                     continue;
 
-                var method = JimpleMethod.of(callerMethod, Scene.v());
-                var cfg = method.getControlFlowGraph();
+                InvokeExpr invoke = stmt.getInvokeExpr();
 
-                for (Statement stmt : method.getStatements()) {
-                    if (!stmt.containsInvokeExpr())
-                        continue;
-
-                    InvokeExpr invoke = stmt.getInvokeExpr();
-
-                    if ((!invoke.isInstanceInvokeExpr()) || invoke.isSpecialInvokeExpr()) {
-                        System.out.println("[SKIPPED PROCESSING] " + invoke);
-                        continue;
-                    }
-
-                    Stmt sootStmt = (Stmt) ((JimpleStatement) stmt).getDelegate();
-
-                    SootMethod expressionMethod = sootStmt.getInvokeExpr().getMethod();
-
-                    if (expressionMethod.isJavaLibraryMethod())
-                        continue;
-
-                    var base = invoke.getBase();
-
-                    Collection<Statement> preds = cfg.getPredsOf(stmt);
-                    if (preds.isEmpty())
-                        preds = Collections.singleton(Statement.epsilon());
-
-                    Set<SootClass> concreteTypes = new HashSet<>();
-
-                    for (Statement predStmt : preds) {
-                        Edge edge = new Edge(predStmt, stmt);
-                        BackwardQuery query = BackwardQuery.make(edge, base);
-                        BackwardBoomerangResults<NoWeight> results = solver.solve(query);
-
-                        for (ForwardQuery fwdQuery : results.getAllocationSites().keySet()) {
-                            String className = fwdQuery.getAllocVal().getType().toString();
-
-                            SootClass concreteClass = Scene.v().getSootClass(className);
-
-                            concreteTypes.add(concreteClass);
-                        }
-                    }
-
-                    var resolvedMethods = new HashSet<SootMethod>();
-
-                    for (var type : concreteTypes) {
-                        System.out.println(callerMethod + " -> Possible Concrete Type: " + type);
-
-                        SootMethod resolvedMethod = Scene.v().getOrMakeFastHierarchy()
-                                .resolveConcreteDispatch(type, expressionMethod);
-
-                        resolvedMethods.add(resolvedMethod);
-                        // System.out.println(" -> Resolved Method: " + resolvedMethod);
-                    }
-
-                    if (resolvedMethods.iterator().hasNext()) {
-                        System.out.println(
-                                callerMethod + " " + resolvedMethods.iterator().next() + " -> Resolved Method: " +
-                                        resolvedMethods.size());
-                    }
-
-                    if (resolvedMethods.size() == 1) {
-                        for (var type : concreteTypes) {
-                            Helper.replaceToStaticCallSite(type, stmt, resolvedMethods.iterator().next(),
-                                    callerMethod);
-                            System.out.println("Replaced with static : " + stmt);
-                        }
-                    }
-
+                if ((!invoke.isInstanceInvokeExpr()) || invoke.isSpecialInvokeExpr()) {
+                    System.out.println("[SKIPPED PROCESSING] " + invoke);
+                    continue;
                 }
+
+                Stmt sootStmt = (Stmt) ((JimpleStatement) stmt).getDelegate();
+
+                SootMethod expressionMethod = sootStmt.getInvokeExpr().getMethod();
+
+                if (expressionMethod.isJavaLibraryMethod())
+                    continue;
+
+                var base = invoke.getBase();
+
+                Collection<Statement> preds = cfg.getPredsOf(stmt);
+                if (preds.isEmpty())
+                    preds = Collections.singleton(Statement.epsilon());
+
+                Set<SootClass> concreteTypes = new HashSet<>();
+
+                for (Statement predStmt : preds) {
+                    Edge edge = new Edge(predStmt, stmt);
+                    BackwardQuery query = BackwardQuery.make(edge, base);
+                    BackwardBoomerangResults<NoWeight> results = solver.solve(query);
+
+                    for (ForwardQuery fwdQuery : results.getAllocationSites().keySet()) {
+                        String className = fwdQuery.getAllocVal().getType().toString();
+
+                        SootClass concreteClass = Scene.v().getSootClass(className);
+
+                        concreteTypes.add(concreteClass);
+                    }
+                }
+
+                var resolvedMethods = new HashSet<SootMethod>();
+
+                for (var type : concreteTypes) {
+                    System.out.println(callerMethod + " -> Possible Concrete Type: " + type);
+
+                    SootMethod resolvedMethod = Scene.v().getOrMakeFastHierarchy()
+                            .resolveConcreteDispatch(type, expressionMethod);
+
+                    resolvedMethods.add(resolvedMethod);
+                    // System.out.println(" -> Resolved Method: " + resolvedMethod);
+                }
+
+                if (resolvedMethods.iterator().hasNext()) {
+                    System.out.println(
+                            callerMethod + " " + resolvedMethods.iterator().next() + " -> Resolved Method: " +
+                                    resolvedMethods.size());
+                }
+
+                if (resolvedMethods.size() == 1) {
+                    for (var type : concreteTypes) {
+                        Helper.replaceToStaticCallSite(type, stmt, resolvedMethods.iterator().next(),
+                                callerMethod);
+                        System.out.println("Replaced with static : " + stmt);
+                    }
+                }
+
             }
-
-            solver.unregisterAllListeners();
-
-            Scene.v().releaseCallGraph();
-            Scene.v().releasePointsToAnalysis();
-            Scene.v().releaseReachableMethods();
-
-            // 2. Force Soot to generate them again
-            PackManager.v().getPack("cg").apply();
-            boomerang.scope.soot.BoomerangPretransformer.v().reset();
-            boomerang.scope.soot.BoomerangPretransformer.v().apply();
         }
+
+        solver.unregisterAllListeners();
 
     }
 
