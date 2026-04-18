@@ -22,7 +22,6 @@ while true; do
     if diff -rq sootOutput sootOutput_iterative > /dev/null; then
         echo "--> Fixpoint reached! No new changes found in run $RUN."
         rm -rf sootOutput_iterative
-        mv sootOutput sootOutput_iterative
         break
     else
         echo "--> Changes detected. Iterating again..."
