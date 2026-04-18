@@ -37,6 +37,8 @@ public class PA4 {
         Options.v().set_allow_phantom_refs(true);
         Options.v().set_main_class("Test");
 
+        Options.v().set_no_writeout_body_releasing(true);
+
         // 2. Use the exclude list to mark everything else as Library
         List<String> excluded = new ArrayList<>();
         excluded.add("java.*");
@@ -59,9 +61,9 @@ public class PA4 {
             }
         }
 
-        PackManager.v().getPack("cg").apply();
-
         BoomerangPretransformer.v().reset();
+
+        PackManager.v().getPack("cg").apply();
         BoomerangPretransformer.v().apply();
 
         AnalysisTransformer analysis = new AnalysisTransformer();
@@ -70,12 +72,12 @@ public class PA4 {
         // PackManager.v().getPack("wjtp").add(
         // new Transform("wjtp.check_inliner", new CheckInliner()));
 
-        PackManager.v().getPack("wjtp").apply();
+        // PackManager.v().getPack("wjtp").apply();
+        PackManager.v().runPacks();
 
-        // Optional: Write out Jimple files to sootOutput/
-
-        Options.v().set_output_format(Options.output_format_jimple);
-        PackManager.v().writeOutput();
+        // // Optional: Write out Jimple files to sootOutput/
+        // Options.v().set_output_format(Options.output_format_shimple);
+        // PackManager.v().writeOutput();
 
         Options.v().set_output_format(Options.output_format_class);
         PackManager.v().writeOutput();

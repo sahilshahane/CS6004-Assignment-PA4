@@ -196,7 +196,7 @@ class Helper {
         String newMethodName = resolvedMethod.getName() + "_gen_compile_time_" + getRandomString(10);
 
         List<Type> staticParamTypes = new ArrayList<>();
-        staticParamTypes.add(declaringClass.getType()); // The explicit 'this'
+        staticParamTypes.add(resolvedMethod.getDeclaringClass().getType()); // The explicit 'this'
         staticParamTypes.addAll(resolvedMethod.getParameterTypes());
 
         int modifiers = resolvedMethod.getModifiers();
@@ -212,6 +212,7 @@ class Helper {
         // TODO: check if the static method signature does not exists in the adding
 
         var staticMethodBody = getTransformedStaticMethodBody(resolvedMethod);
+        staticMethodBody.setMethod(newStaticMethod);
         newStaticMethod.setActiveBody(staticMethodBody);
 
         resolvedMethod.getDeclaringClass().addMethod(newStaticMethod);
