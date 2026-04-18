@@ -69,14 +69,13 @@ public class PA4 {
         AnalysisTransformer analysis = new AnalysisTransformer();
         PackManager.v().getPack("wjtp").add(new Transform("wjtp.analysis", analysis));
 
-        // PackManager.v().getPack("wjtp").add(
-        // new Transform("wjtp.check_inliner", new CheckInliner()));
+        PackManager.v().getPack("wjtp").add(new Transform("wjtp.check_inliner", new CheckInliner()));
 
         // PackManager.v().getPack("wjtp").apply();
         PackManager.v().runPacks();
 
         // // Optional: Write out Jimple files to sootOutput/
-        // Options.v().set_output_format(Options.output_format_shimple);
+        // Options.v().set_output_format(Options.output_format_jimple);
         // PackManager.v().writeOutput();
 
         Options.v().set_output_format(Options.output_format_class);
