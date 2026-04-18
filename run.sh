@@ -15,7 +15,9 @@ if [ -z "$TEST_CASE" ]; then
 fi
 
 OUTPUT_DIR="class_outputs"
-rm -rf sootOutput
+SOOT_OUTPUT_DIR="sootOutput"
+
+rm -rf $SOOT_OUTPUT_DIR
 rm -rf "$OUTPUT_DIR"
 rm -rf editedClasses
 mkdir -p "$OUTPUT_DIR"
@@ -32,9 +34,9 @@ if [ $COMPILE_ONLY -eq 0 ]; then
     java -cp ".:$OUTPUT_DIR:$LIB_CLASSPATH" "$MAIN_CLASS" "$TEST_CASE"
 fi
 
-echo "Running the modified code 3 \n"
-
-# java -cp ".:$LIB_CLASSPATH" soot.Main -src-prec jimple -f class -process-dir sootOutput -output-dir editedClasses
-java -cp $OUTPUT_DIR Test
+echo "Converting jimple to class files  \n"
+java -cp ".:$LIB_CLASSPATH" soot.Main -src-prec jimple -f class -process-dir $SOOT_OUTPUT_DIR -output-dir editedClasses
 
 echo "Running the modified code\n"
+java -cp editedClasses Test
+

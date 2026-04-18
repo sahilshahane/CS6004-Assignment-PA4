@@ -1,7 +1,6 @@
-package testcases.Test4;
-
 class A {
     public void dosome() {
+        System.out.println("Do something");
     }
 }
 

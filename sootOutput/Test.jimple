@@ -14,50 +14,19 @@ public class Test extends java.lang.Object
 
     public static void main(java.lang.String[])
     {
-        SubEvent2 $r1;
-        Event r4, r5;
-        java.lang.Object $r0;
-        java.lang.String[] r3;
-        boolean $z0;
-        SubEvent1 $r2;
+        A $stack2;
+        java.lang.String[] l0;
 
         nop;
 
-        r3 := @parameter0: java.lang.String[];
+        l0 := @parameter0: java.lang.String[];
 
-        $r0 = new java.lang.Object;
+        $stack2 = new A;
 
-        specialinvoke $r0.<java.lang.Object: void <init>()>();
+        specialinvoke $stack2.<A: void <init>()>();
 
-        $z0 = $r0 instanceof java.lang.Object;
+        staticinvoke <A: void dosome_gen_compile_time_IPYYARM9WW(A)>($stack2);
 
-        if $z0 == false goto label2;
-
-        nop;
-
-        $r2 = new SubEvent1;
-
-        specialinvoke $r2.<SubEvent1: void <init>()>();
-
-        r4 = $r2;
-
-        goto label1;
-
-     label1:
-        goto label3;
-
-     label2:
-        nop;
-
-        $r1 = new SubEvent2;
-
-        specialinvoke $r1.<SubEvent2: void <init>()>();
-
-        r5 = $r1;
-
-        goto label3;
-
-     label3:
         return;
     }
 }
