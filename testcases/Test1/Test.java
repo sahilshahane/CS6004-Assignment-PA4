@@ -11,7 +11,7 @@ class SubEvent1 extends Event {
 
 class SubEvent2 extends Event {
     public void dosome() {
-        System.out.println("SubEvent1");
+        System.out.println("SubEvent2");
     }
 }
 

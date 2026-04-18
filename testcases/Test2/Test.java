@@ -1,16 +1,16 @@
-package testcases.Test2;
-
 interface Strategy {
     void execute();
 }
 
 class FastStrategy implements Strategy {
     public void execute() {
+        System.out.println("FastStrategy");
     }
 }
 
 class SecureStrategy implements Strategy {
     public void execute() {
+        System.out.println("SecureStrategy");
     }
 }
 
