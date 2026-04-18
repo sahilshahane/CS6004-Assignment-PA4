@@ -34,20 +34,21 @@ if [ $COMPILE_ONLY -eq 0 ]; then
     java -cp ".:$OUTPUT_DIR:$LIB_CLASSPATH" "$MAIN_CLASS" "$TEST_CASE"
 fi
 
-if [ $? -eq 0 ]; then
-    echo "Converting jimple to class files  \n"
-    java -cp ".:$LIB_CLASSPATH" soot.Main -src-prec jimple -f class -process-dir $SOOT_OUTPUT_DIR -output-dir editedClasses
-else
-    echo "\n\nError: Failed to run soot modifications. Aborting execution."
-    exit
-fi
+# if [ $? -eq 0 ]; then
+#     echo "\nSoot processing complete\n" 
+#     echo "Converting jimple to class files  \n"
+#     java -cp ".:$LIB_CLASSPATH" soot.Main -src-prec jimple -f class -process-dir $SOOT_OUTPUT_DIR -output-dir editedClasses
+# else
+#     echo "\n\nError: Failed to run soot modifications. Aborting execution."
+#     exit
+# fi
 
 
-# Check if the previous command successfully compiled the files
-if [ $? -eq 0 ]; then
-    echo -e "Running the modified code\n"
-    java -cp editedClasses Test
-else
-    echo "\n\nError: Failed to convert jimple to class files. Aborting execution."
-    exit
-fi
+# # Check if the previous command successfully compiled the files
+# if [ $? -eq 0 ]; then
+#     echo -e "Running the modified code\n"
+#     java -cp editedClasses Test
+# else
+#     echo "\n\nError: Failed to convert jimple to class files. Aborting execution."
+#     exit
+# fi

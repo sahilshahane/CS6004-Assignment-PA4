@@ -103,8 +103,9 @@ public class AnalysisTransformer extends SceneTransformer {
                                 resolvedMethods.size());
 
                 if (resolvedMethods.size() == 1) {
+
                     for (var type : concreteTypes) {
-                        Helper.replaceToStaticCallSite(type, stmt, declaredMethod);
+                        Helper.replaceToStaticCallSite(type, stmt, resolvedMethods.iterator().next(), callerMethod);
                         System.out.println("Replaced with static : " + stmt);
                     }
                 }
@@ -174,48 +175,45 @@ class Helper {
         return staticBody;
     }
 
-    static void replaceToStaticCallSite(SootClass declaringClass, Statement stmt, SootMethod callerMethod) {
+    static void replaceToStaticCallSite(SootClass declaringClass, Statement stmt, SootMethod resolvedMethod,
+            SootMethod callerMethod) {
         if (!stmt.containsInvokeExpr()) {
             System.out.println(stmt + " is not a invoke expression");
             return;
         }
 
-        Stmt sootStmt = (Stmt) ((JimpleStatement) stmt).getDelegate();
-
-        SootMethod originalMethod = sootStmt.getInvokeExpr().getMethod();
-
-        if (originalMethod.isStatic()) {
-            System.out.println("method already static : " + originalMethod);
+        if (resolvedMethod.isStatic()) {
+            System.out.println("method already static : " + resolvedMethod);
             return;
         }
 
-        if (originalMethod.isConstructor()) {
-            System.out.println("cannot convert constructor to static : " + originalMethod);
+        if (resolvedMethod.isConstructor()) {
+            System.out.println("cannot convert constructor to static : " + resolvedMethod);
             return;
         }
 
-        String newMethodName = originalMethod.getName() + "_gen_compile_time_" + getRandomString(10);
+        String newMethodName = resolvedMethod.getName() + "_gen_compile_time_" + getRandomString(10);
 
         List<Type> staticParamTypes = new ArrayList<>();
         staticParamTypes.add(declaringClass.getType()); // The explicit 'this'
-        staticParamTypes.addAll(originalMethod.getParameterTypes());
+        staticParamTypes.addAll(resolvedMethod.getParameterTypes());
 
-        int modifiers = originalMethod.getModifiers();
+        int modifiers = resolvedMethod.getModifiers();
         modifiers |= Modifier.STATIC;
 
         SootMethod newStaticMethod = new SootMethod(
                 newMethodName,
                 staticParamTypes,
-                originalMethod.getReturnType(),
+                resolvedMethod.getReturnType(),
                 modifiers,
-                originalMethod.getExceptions());
+                resolvedMethod.getExceptions());
 
         // TODO: check if the static method signature does not exists in the adding
 
-        var staticMethodBody = getTransformedStaticMethodBody(originalMethod);
+        var staticMethodBody = getTransformedStaticMethodBody(resolvedMethod);
         newStaticMethod.setActiveBody(staticMethodBody);
 
-        declaringClass.addMethod(newStaticMethod);
+        resolvedMethod.getDeclaringClass().addMethod(newStaticMethod);
 
         Stmt originalInvokeStmt = (soot.jimple.Stmt) ((JimpleStatement) stmt).getDelegate();
 
