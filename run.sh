@@ -30,6 +30,6 @@ if [ $COMPILE_ONLY -eq 0 ]; then
 fi
 
 echo "Running the modified code\n"
-./run.sh
+
 java -cp ".:$LIB_CLASSPATH" soot.Main -src-prec jimple -f class -process-dir sootOutput -output-dir editedClasses
 java -cp editedClasses Test

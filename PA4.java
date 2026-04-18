@@ -67,6 +67,9 @@ public class PA4 {
         BoomerangPretransformer.v().reset();
         BoomerangPretransformer.v().apply();
 
+        PackManager.v().getPack("wjtp").add(
+                new Transform("wjtp.check_inliner", new CheckInliner()));
+
         PackManager.v().getPack("wjtp").apply();
 
         // Optional: Write out Jimple files to sootOutput/
