@@ -104,7 +104,7 @@ public class AnalysisTransformer extends SceneTransformer {
 
                 if (resolvedMethods.size() == 1) {
                     for (var type : concreteTypes) {
-                        Helper.replaceToStaticCallSite(type, stmt, callerMethod);
+                        Helper.replaceToStaticCallSite(type, stmt, declaredMethod);
                         System.out.println("Replaced with static : " + stmt);
                     }
                 }
@@ -128,7 +128,7 @@ class Helper {
         return sb.toString();
     }
 
-    static Body getTransformedStaticMethodBody(SootClass thisType, SootMethod originalMethod) {
+    static Body getTransformedStaticMethodBody(SootMethod originalMethod) {
         if (!originalMethod.hasActiveBody()) {
             originalMethod.retrieveActiveBody();
         }
@@ -150,7 +150,7 @@ class Helper {
                 if (rightOp instanceof ThisRef) {
                     // Change "@this: Type" to "@parameter0: Type"
                     ParameterRef newParam0 = Jimple.v()
-                            .newParameterRef(thisType.getType(), 0);
+                            .newParameterRef(originalMethod.getDeclaringClass().getType(), 0);
 
                     System.out.println("Chaning param : " + rightOp + " " + newParam0);
                     idStmt.setRightOp(newParam0);
@@ -164,9 +164,12 @@ class Helper {
                     idStmt.setRightOp(shiftedParam);
                 }
             } else {
-                break;
+                // break;
             }
         }
+
+        System.out.println("original body : " + originalBody.getUnits());
+        System.out.println("original method : " + originalMethod);
 
         return staticBody;
     }
@@ -209,7 +212,7 @@ class Helper {
 
         // TODO: check if the static method signature does not exists in the adding
 
-        var staticMethodBody = getTransformedStaticMethodBody(declaringClass, originalMethod);
+        var staticMethodBody = getTransformedStaticMethodBody(originalMethod);
         newStaticMethod.setActiveBody(staticMethodBody);
 
         declaringClass.addMethod(newStaticMethod);

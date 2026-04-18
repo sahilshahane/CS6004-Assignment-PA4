@@ -1,4 +1,3 @@
-
 class Event {
     public void dosome() {
     }
