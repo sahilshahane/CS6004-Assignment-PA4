@@ -1,5 +1,6 @@
 # Compiled class files
 *.class
+*.jimple
 
 # Log file
 *.log
