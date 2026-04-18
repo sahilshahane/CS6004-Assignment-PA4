@@ -4,5 +4,8 @@
         "lib/**/*.jar",
         "lib/*.jar"
     ],
+    "java.project.sourcePaths": [
+        "."
+    ],
     "java.configuration.updateBuildConfiguration": "interactive"
 }

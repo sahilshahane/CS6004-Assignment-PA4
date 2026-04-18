@@ -14,116 +14,18 @@ public class Test extends java.lang.Object
 
     public static void main(java.lang.String[])
     {
-        Tex $stack4;
         java.lang.String[] l0;
-        T $stack19, l1, $stack9;
-        int $stack3, $stack6, $stack8, $stack14, $stack16;
-        java.io.PrintStream $stack2, $stack5, $stack7, $stack13, $stack15;
-        Tex4 $stack17;
-        Tex3 $stack18;
-        Tex2 $stack10;
-        Tex1 $stack12;
+        Tex $stack2;
 
         nop;
 
         l0 := @parameter0: java.lang.String[];
 
-        $stack2 = <java.lang.System: java.io.PrintStream out>;
+        $stack2 = new Tex;
 
-        $stack3 = virtualinvoke $stack2.<java.lang.Object: int hashCode()>();
+        specialinvoke $stack2.<Tex: void <init>()>();
 
-        if $stack3 <= 1 goto label1;
-
-        nop;
-
-        $stack19 = new T;
-
-        specialinvoke $stack19.<T: void <init>()>();
-
-        l1 = $stack19;
-
-        goto label2;
-
-     label1:
-        nop;
-
-        $stack4 = new Tex;
-
-        specialinvoke $stack4.<Tex: void <init>()>();
-
-        l1 = $stack4;
-
-     label2:
-        virtualinvoke l1.<T: void A()>();
-
-        $stack5 = <java.lang.System: java.io.PrintStream out>;
-
-        $stack6 = virtualinvoke $stack5.<java.lang.Object: int hashCode()>();
-
-        if $stack6 <= 1 goto label4;
-
-        nop;
-
-        $stack12 = new Tex1;
-
-        specialinvoke $stack12.<Tex1: void <init>()>();
-
-        $stack13 = <java.lang.System: java.io.PrintStream out>;
-
-        $stack14 = virtualinvoke $stack13.<java.lang.Object: int hashCode()>();
-
-        if $stack14 <= 1 goto label3;
-
-        nop;
-
-        $stack18 = new Tex3;
-
-        specialinvoke $stack18.<Tex3: void <init>()>();
-
-        goto label5;
-
-     label3:
-        nop;
-
-        $stack15 = <java.lang.System: java.io.PrintStream out>;
-
-        $stack16 = virtualinvoke $stack15.<java.lang.Object: int hashCode()>();
-
-        if $stack16 <= 1 goto label5;
-
-        nop;
-
-        $stack17 = new Tex4;
-
-        specialinvoke $stack17.<Tex4: void <init>()>();
-
-        goto label5;
-
-     label4:
-        nop;
-
-        $stack7 = <java.lang.System: java.io.PrintStream out>;
-
-        $stack8 = virtualinvoke $stack7.<java.lang.Object: int hashCode()>();
-
-        if $stack8 <= 1 goto label5;
-
-        nop;
-
-        $stack10 = new Tex2;
-
-        specialinvoke $stack10.<Tex2: void <init>()>();
-
-     label5:
-        nop;
-
-        nop;
-
-        $stack9 = new T;
-
-        specialinvoke $stack9.<T: void <init>()>();
-
-        virtualinvoke $stack9.<T: void A()>();
+        staticinvoke <Tex: void A_gen_compile_time_JSL3H8T8G0(Tex)>($stack2);
 
         return;
     }

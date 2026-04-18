@@ -36,7 +36,6 @@ public class PA4 {
 
         Options.v().set_allow_phantom_refs(true);
         Options.v().set_main_class("Test");
-        Options.v().set_output_format(Options.output_format_jimple);
 
         // 2. Use the exclude list to mark everything else as Library
         List<String> excluded = new ArrayList<>();
@@ -71,6 +70,11 @@ public class PA4 {
         PackManager.v().getPack("wjtp").apply();
 
         // Optional: Write out Jimple files to sootOutput/
+
+        Options.v().set_output_format(Options.output_format_jimple);
         PackManager.v().writeOutput();
+
+        // Options.v().set_output_format(Options.output_format_class);
+        // PackManager.v().writeOutput();
     }
 }
