@@ -33,4 +33,4 @@ done
 echo ""
 echo "========== FINAL EXECUTION =========="
 echo "Running the final compiled code"
-java -cp sootOutput_iterative Test
+java -cp sootOutput Test

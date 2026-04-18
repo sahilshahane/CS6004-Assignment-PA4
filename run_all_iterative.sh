@@ -15,8 +15,8 @@ for test_dir in testcases/*/; do
     echo " Executing: $test_case"
     echo "======================================================"
     
-    # Forward any CLI flags (like --run) and update the test case path
-    ./run.sh "testcases/$test_case" "$@"
+    # Forward any CLI flags (like --run) and append the test case path
+    ./run_iterative.sh "testcases/$test_case"
     
     echo ""
 done
