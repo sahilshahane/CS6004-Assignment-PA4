@@ -105,7 +105,6 @@ public class AnalysisTransformer extends SceneTransformer {
                 }
 
                 if (resolvedMethods.size() == 1) {
-
                     for (var type : concreteTypes) {
                         Helper.replaceToStaticCallSite(type, stmt, resolvedMethods.iterator().next(),
                                 callerMethod);
@@ -132,7 +131,7 @@ class Helper {
         return sb.toString();
     }
 
-    static Body getTransformedStaticMethodBody(SootMethod originalMethod) {
+    static Body getTransformedStaticMethodBody(SootClass thisClass, SootMethod originalMethod) {
         if (!originalMethod.hasActiveBody()) {
             originalMethod.retrieveActiveBody();
         }
@@ -154,7 +153,7 @@ class Helper {
                 if (rightOp instanceof ThisRef) {
                     // Change "@this: Type" to "@parameter0: Type"
                     ParameterRef newParam0 = Jimple.v()
-                            .newParameterRef(originalMethod.getDeclaringClass().getType(), 0);
+                            .newParameterRef(thisClass.getType(), 0);
 
                     System.out.println("Chaning param : " + rightOp + " " + newParam0);
                     idStmt.setRightOp(newParam0);
@@ -211,13 +210,15 @@ class Helper {
                 modifiers,
                 resolvedMethod.getExceptions());
 
+        var modifyingClass = false ? declaringClass : resolvedMethod.getDeclaringClass();
+
         // TODO: check if the static method signature does not exists in the adding
 
-        var staticMethodBody = getTransformedStaticMethodBody(resolvedMethod);
+        var staticMethodBody = getTransformedStaticMethodBody(modifyingClass, resolvedMethod);
         staticMethodBody.setMethod(newStaticMethod);
         newStaticMethod.setActiveBody(staticMethodBody);
 
-        resolvedMethod.getDeclaringClass().addMethod(newStaticMethod);
+        modifyingClass.addMethod(newStaticMethod);
 
         Stmt originalInvokeStmt = (soot.jimple.Stmt) ((JimpleStatement) stmt).getDelegate();
 
