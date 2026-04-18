@@ -98,9 +98,11 @@ public class AnalysisTransformer extends SceneTransformer {
                     // System.out.println(" -> Resolved Method: " + resolvedMethod);
                 }
 
-                System.out.println(
-                        callerMethod + " " + resolvedMethods.iterator().next() + " -> Resolved Method: " +
-                                resolvedMethods.size());
+                if (resolvedMethods.iterator().hasNext()) {
+                    System.out.println(
+                            callerMethod + " " + resolvedMethods.iterator().next() + " -> Resolved Method: " +
+                                    resolvedMethods.size());
+                }
 
                 if (resolvedMethods.size() == 1) {
 
