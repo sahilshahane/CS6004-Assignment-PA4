@@ -1,0 +1,42 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" 
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.yourname.analysis</groupId>
+    <artifactId>k1-context-analysis</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <soot.version>4.6.0</soot.version>
+        <boomerang.version>4.3.2</boomerang.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.soot-oss</groupId>
+            <artifactId>soot</artifactId>
+            <version>${soot.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>de.fraunhofer.iem</groupId>
+            <artifactId>boomerangPDS</artifactId>
+            <version>${boomerang.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>de.fraunhofer.iem</groupId>
+            <artifactId>boomerangScope-Soot</artifactId>
+            <version>${boomerang.version}</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>de.fraunhofer.iem</groupId>
+            <artifactId>idealPDS</artifactId>
+            <version>${boomerang.version}</version>
+        </dependency>
+    </dependencies>
+</project>

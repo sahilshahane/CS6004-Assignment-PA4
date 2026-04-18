@@ -74,7 +74,7 @@ public class PA4 {
 
         // 5. Register your Analysis
         // We add it to 'wjtp' (Whole Jimple Transformation Pack)
-        AnalysisTransformer analysis = new AnalysisTransformer();
+        var analysis = new AnalysisTransformer_boomerang();
         PackManager.v().getPack("wjtp").add(new Transform("wjtp.analysis", analysis));
 
         // 6. Execute

@@ -1,6 +1,6 @@
 MAIN_CLASS=PA4
-
 OUTPUT_DIR=class_outputs
+LIB_CLASSPATH="./lib/*"
 
 COMPILE_ONLY=0
 if [ "$1" = "--compile-only" ]; then
@@ -17,12 +17,11 @@ fi
 
 rm -rf sootOutput
 rm -rf "$OUTPUT_DIR"
-
 mkdir -p "$OUTPUT_DIR"
 
-javac -cp .:./lib/soot.jar -d "$OUTPUT_DIR" $MAIN_CLASS.java
-javac testcases/$TEST_CASE/Test.java
+javac -proc:none -cp ".:$LIB_CLASSPATH" -d "$OUTPUT_DIR" "$MAIN_CLASS.java" "AnalysisTransformer_boomerang.java"
+javac -cp ".:$OUTPUT_DIR:$LIB_CLASSPATH" "testcases/$TEST_CASE/Test.java"
 
 if [ $COMPILE_ONLY -eq 0 ]; then
-    java -cp "$OUTPUT_DIR":./lib/soot.jar $MAIN_CLASS $TEST_CASE
+    java -cp "$OUTPUT_DIR:$LIB_CLASSPATH" "$MAIN_CLASS" "$TEST_CASE"
 fi
