@@ -52,7 +52,7 @@ public class AnalysisTransformer extends SceneTransformer {
 
                 InvokeExpr invoke = stmt.getInvokeExpr();
 
-                if (!(invoke.isInstanceInvokeExpr() && !invoke.isSpecialInvokeExpr())) {
+                if ((!invoke.isInstanceInvokeExpr()) || invoke.isSpecialInvokeExpr()) {
                     System.out.println("[SKIPPED PROCESSING] " + invoke);
                     continue;
                 }
@@ -105,7 +105,8 @@ public class AnalysisTransformer extends SceneTransformer {
                 if (resolvedMethods.size() == 1) {
 
                     for (var type : concreteTypes) {
-                        Helper.replaceToStaticCallSite(type, stmt, resolvedMethods.iterator().next(), callerMethod);
+                        Helper.replaceToStaticCallSite(type, stmt, resolvedMethods.iterator().next(),
+                                callerMethod);
                         System.out.println("Replaced with static : " + stmt);
                     }
                 }

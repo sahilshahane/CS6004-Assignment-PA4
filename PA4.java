@@ -59,13 +59,13 @@ public class PA4 {
             }
         }
 
-        AnalysisTransformer analysis = new AnalysisTransformer();
-        PackManager.v().getPack("wjtp").add(new Transform("wjtp.analysis", analysis));
-
         PackManager.v().getPack("cg").apply();
 
         BoomerangPretransformer.v().reset();
         BoomerangPretransformer.v().apply();
+
+        AnalysisTransformer analysis = new AnalysisTransformer();
+        PackManager.v().getPack("wjtp").add(new Transform("wjtp.analysis", analysis));
 
         // PackManager.v().getPack("wjtp").add(
         // new Transform("wjtp.check_inliner", new CheckInliner()));
@@ -74,10 +74,10 @@ public class PA4 {
 
         // Optional: Write out Jimple files to sootOutput/
 
-        Options.v().set_output_format(Options.output_format_class);
+        Options.v().set_output_format(Options.output_format_jimple);
         PackManager.v().writeOutput();
 
-        Options.v().set_output_format(Options.output_format_jimple);
+        Options.v().set_output_format(Options.output_format_class);
         PackManager.v().writeOutput();
     }
 }
