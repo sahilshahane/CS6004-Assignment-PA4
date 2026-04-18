@@ -11,9 +11,12 @@ import soot.options.Options;
 
 public class PA4 {
     public static void main(String[] args) {
-        String classPath = "./testcases/" + args[0];
+        String classPath = args[0];
+        String outputDir = args.length > 1 ? args[1] : "sootOutput";
 
         G.reset();
+
+        Options.v().set_output_dir(outputDir);
 
         Options.v().setPhaseOption("cg.spark", "on");
         Options.v().setPhaseOption("cg.spark", "vta:true");
@@ -62,13 +65,10 @@ public class PA4 {
         }
 
         BoomerangPretransformer.v().reset();
-
         PackManager.v().getPack("cg").apply();
         BoomerangPretransformer.v().apply();
 
-        AnalysisTransformer analysis = new AnalysisTransformer();
-        PackManager.v().getPack("wjtp").add(new Transform("wjtp.analysis", analysis));
-
+        PackManager.v().getPack("wjtp").add(new Transform("wjtp.analysis", new AnalysisTransformer()));
         PackManager.v().getPack("wjtp").add(new Transform("wjtp.check_inliner", new CheckInliner()));
 
         // PackManager.v().getPack("wjtp").apply();
