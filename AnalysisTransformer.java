@@ -174,11 +174,19 @@ class Helper {
             return;
         }
 
-        InvokeExpr expr = stmt.getInvokeExpr();
-
         Stmt sootStmt = (Stmt) ((JimpleStatement) stmt).getDelegate();
 
         SootMethod originalMethod = sootStmt.getInvokeExpr().getMethod();
+
+        if (originalMethod.isStatic()) {
+            System.out.println("method already static : " + originalMethod);
+            return;
+        }
+
+        if (originalMethod.isConstructor()) {
+            System.out.println("cannot convert constructor to static : " + originalMethod);
+            return;
+        }
 
         String newMethodName = originalMethod.getName() + "_gen_compile_time_" + getRandomString(10);
 
@@ -197,7 +205,6 @@ class Helper {
                 originalMethod.getExceptions());
 
         // TODO: check if the static method signature does not exists in the adding
-        // class
 
         var staticMethodBody = getTransformedStaticMethodBody(originalMethod);
         newStaticMethod.setActiveBody(staticMethodBody);
