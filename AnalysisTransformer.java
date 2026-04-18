@@ -95,7 +95,8 @@ public class AnalysisTransformer extends SceneTransformer {
                     SootMethod resolvedMethod = Scene.v().getOrMakeFastHierarchy()
                             .resolveConcreteDispatch(type, expressionMethod);
 
-                    resolvedMethods.add(resolvedMethod);
+                    if (resolvedMethod != null)
+                        resolvedMethods.add(resolvedMethod);
                     // System.out.println(" -> Resolved Method: " + resolvedMethod);
                 }
 
@@ -107,8 +108,7 @@ public class AnalysisTransformer extends SceneTransformer {
 
                 if (resolvedMethods.size() == 1) {
                     for (var type : concreteTypes) {
-                        Helper.replaceToStaticCallSite(type, stmt, resolvedMethods.iterator().next(),
-                                callerMethod);
+                        Helper.replaceToStaticCallSite(type, stmt, resolvedMethods.iterator().next(), callerMethod);
                         System.out.println("Replaced with static : " + stmt);
                     }
                 }
