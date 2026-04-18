@@ -59,9 +59,9 @@ public class AnalysisTransformer extends SceneTransformer {
 
                 Stmt sootStmt = (Stmt) ((JimpleStatement) stmt).getDelegate();
 
-                SootMethod declaredMethod = sootStmt.getInvokeExpr().getMethod();
+                SootMethod expressionMethod = sootStmt.getInvokeExpr().getMethod();
 
-                if (declaredMethod.isJavaLibraryMethod())
+                if (expressionMethod.isJavaLibraryMethod())
                     continue;
 
                 var base = invoke.getBase();
@@ -92,14 +92,14 @@ public class AnalysisTransformer extends SceneTransformer {
                     System.out.println(callerMethod + " -> Possible Concrete Type: " + type);
 
                     SootMethod resolvedMethod = Scene.v().getOrMakeFastHierarchy()
-                            .resolveConcreteDispatch(type, declaredMethod);
+                            .resolveConcreteDispatch(type, expressionMethod);
 
                     resolvedMethods.add(resolvedMethod);
                     // System.out.println(" -> Resolved Method: " + resolvedMethod);
                 }
 
                 System.out.println(
-                        callerMethod + " " + declaredMethod + " -> Resolved Method: " +
+                        callerMethod + " " + resolvedMethods.iterator().next() + " -> Resolved Method: " +
                                 resolvedMethods.size());
 
                 if (resolvedMethods.size() == 1) {
