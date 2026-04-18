@@ -20,6 +20,14 @@ cp -r sootOutput_iterative "iterative_runs/$TEST_NAME/output_run$RUN"
 
 while true; do
     RUN=$((RUN + 1))
+
+    if [ $RUN -gt 10 ]; then
+        echo "--> Max iterations (10) reached. Stopping."
+        cp -r sootOutput_iterative sootOutput
+        rm -rf sootOutput_iterative
+        break
+    fi
+
     echo ""
     echo "========== RUN $RUN: sootOutput_iterative =========="
     ./run.sh "sootOutput_iterative" --compile-only --no-build
