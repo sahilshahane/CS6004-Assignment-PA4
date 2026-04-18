@@ -70,6 +70,7 @@ public class PA4 {
 
         PackManager.v().getPack("wjtp").add(new Transform("wjtp.analysis", new AnalysisTransformer()));
         PackManager.v().getPack("wjtp").add(new Transform("wjtp.check_inliner", new CheckInliner()));
+        PackManager.v().getPack("wjtp").add(new Transform("wjtp.unreachable", new UnreachableMethodRemover()));
 
         // PackManager.v().getPack("wjtp").apply();
         PackManager.v().runPacks();
