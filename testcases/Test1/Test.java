@@ -1,4 +1,3 @@
-package testcases.Test1;
 
 class Event {
     public void dosome() {

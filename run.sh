@@ -17,7 +17,10 @@ fi
 OUTPUT_DIR="class_outputs"
 rm -rf sootOutput
 rm -rf "$OUTPUT_DIR"
+rm -rf editedClasses
 mkdir -p "$OUTPUT_DIR"
+
+rm -rf "testcases/$TEST_CASE/*.class"
 
 # Build the analysis tool
 javac -proc:none -cp ".:$LIB_CLASSPATH" -d "$OUTPUT_DIR" "$MAIN_CLASS.java" "AnalysisTransformer.java"
@@ -29,7 +32,9 @@ if [ $COMPILE_ONLY -eq 0 ]; then
     java -cp ".:$OUTPUT_DIR:$LIB_CLASSPATH" "$MAIN_CLASS" "$TEST_CASE"
 fi
 
-echo "Running the modified code\n"
+echo "Running the modified code 3 \n"
 
-java -cp ".:$LIB_CLASSPATH" soot.Main -src-prec jimple -f class -process-dir sootOutput -output-dir editedClasses
-java -cp editedClasses Test
+# java -cp ".:$LIB_CLASSPATH" soot.Main -src-prec jimple -f class -process-dir sootOutput -output-dir editedClasses
+java -cp $OUTPUT_DIR Test
+
+echo "Running the modified code\n"

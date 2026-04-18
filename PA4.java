@@ -77,7 +77,7 @@ public class PA4 {
         Options.v().set_output_format(Options.output_format_jimple);
         PackManager.v().writeOutput();
 
-        // Options.v().set_output_format(Options.output_format_class);
-        // PackManager.v().writeOutput();
+        Options.v().set_output_format(Options.output_format_class);
+        PackManager.v().writeOutput();
     }
 }
