@@ -33,6 +33,7 @@ public class CheckInliner extends SceneTransformer {
         // iterate through all unit and check if there is a call to a method
         for (Unit unit : method.retrieveActiveBody().getUnits()) {
             if (unit instanceof InvokeStmt) {
+                // TODO: fix the below case
                 InvokeExpr invokeExpr = ((InvokeStmt) unit).getInvokeExpr();
                 SootMethod calledMethod = invokeExpr.getMethod();
                 // check if called method is in methodWrappers
@@ -72,7 +73,6 @@ public class CheckInliner extends SceneTransformer {
 
     @Override
     protected void internalTransform(String phaseName, Map<String, String> options) {
-        // 🔹 Get all application classes
         Chain<SootClass> classes = Scene.v().getApplicationClasses();
 
         // store all methods in hashmap of methoddWrappers , that have a faster

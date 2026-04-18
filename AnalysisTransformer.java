@@ -133,11 +133,9 @@ class Helper {
             originalMethod.retrieveActiveBody();
         }
 
-        // Clone the original body
         Body originalBody = originalMethod.getActiveBody();
         Body staticBody = (Body) originalBody.clone();
 
-        // Mutate the Identity statements to reflect the new signature
         PatchingChain<Unit> units = staticBody.getUnits();
 
         for (Unit u : units) {
@@ -159,8 +157,6 @@ class Helper {
                     idStmt.setRightOp(shiftedParam);
                 }
             } else {
-                // IdentityStmts are strictly at the head of the method body.
-                // Once we hit a non-IdentityStmt, we can break early to save cycles.
                 break;
             }
         }
@@ -211,30 +207,21 @@ class Helper {
 
         declaringClass.addMethod(newStaticMethod);
 
-        // 1. Get the original invoke statement (Unit / Stmt)
-        soot.jimple.Stmt originalInvokeStmt = (soot.jimple.Stmt) ((JimpleStatement) stmt).getDelegate();
+        Stmt originalInvokeStmt = (soot.jimple.Stmt) ((JimpleStatement) stmt).getDelegate();
 
-        // 2. Get the VirtualInvokeExpr (assuming you've filtered out other invokes)
-        soot.jimple.VirtualInvokeExpr originalExpr = (soot.jimple.VirtualInvokeExpr) originalInvokeStmt.getInvokeExpr();
-
-        // 4. Get the caller's Body (extracting it from the statement's enclosing
-        // method)
+        VirtualInvokeExpr originalExpr = (soot.jimple.VirtualInvokeExpr) originalInvokeStmt.getInvokeExpr();
 
         soot.Body callerBody = callerMethod.getActiveBody();
 
-        // The receiver object (e.g., 'obj' in obj.foo(a)) becomes the first argument
         Value receiver = originalExpr.getBase();
 
-        // Construct the new argument list
         List<Value> staticArgs = new ArrayList<>();
         staticArgs.add(receiver);
         staticArgs.addAll(originalExpr.getArgs());
 
-        // Create the new StaticInvokeExpr
         StaticInvokeExpr staticInvoke = Jimple.v().newStaticInvokeExpr(
                 newStaticMethod.makeRef(), staticArgs);
 
-        // Replace the statement in the AST
         if (originalInvokeStmt instanceof InvokeStmt) {
             InvokeStmt newStmt = Jimple.v().newInvokeStmt(staticInvoke);
             callerBody.getUnits().swapWith(originalInvokeStmt, newStmt);
