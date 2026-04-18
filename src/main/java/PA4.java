@@ -16,6 +16,9 @@ public class PA4 {
         G.reset();
 
         Options.v().setPhaseOption("cg.spark", "on");
+        Options.v().setPhaseOption("cg.spark", "vta:true");
+        Options.v().setPhaseOption("cg.spark", "fallback-cha:false");
+
         Options.v().setPhaseOption("jb", "use-original-names:true");
 
         // 2. Setting Global Options (The Options.v() way)

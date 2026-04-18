@@ -1,5 +1,4 @@
 MAIN_CLASS=PA4
-OUTPUT_DIR=class_outputs
 LIB_CLASSPATH="./lib/*"
 
 COMPILE_ONLY=0
@@ -16,12 +15,13 @@ if [ -z "$TEST_CASE" ]; then
 fi
 
 rm -rf sootOutput
-rm -rf "$OUTPUT_DIR"
-mkdir -p "$OUTPUT_DIR"
 
-javac -proc:none -cp ".:$LIB_CLASSPATH" -d "$OUTPUT_DIR" "$MAIN_CLASS.java" "AnalysisTransformer.java"
-javac -cp ".:$OUTPUT_DIR:$LIB_CLASSPATH" "testcases/$TEST_CASE/Test.java"
+# Build the analysis tool using Maven
+mvn clean compile -q
+
+# Build the testcase
+javac -cp ".:target/classes:$LIB_CLASSPATH" "testcases/$TEST_CASE/Test.java"
 
 if [ $COMPILE_ONLY -eq 0 ]; then
-    java -cp "$OUTPUT_DIR:$LIB_CLASSPATH" "$MAIN_CLASS" "$TEST_CASE"
+    java -cp "target/classes:$LIB_CLASSPATH" "$MAIN_CLASS" "$TEST_CASE"
 fi

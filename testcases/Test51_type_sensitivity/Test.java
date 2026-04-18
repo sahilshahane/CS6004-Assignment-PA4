@@ -45,6 +45,8 @@ public class Test {
             t = new Tex();
         }
 
+        t.A();
+
         if ((System.out.hashCode()) > 01) {
             t = new Tex1();
 
@@ -58,6 +60,7 @@ public class Test {
             t = new Tex2();
         }
 
+        t = new T();
         t.A();
     }
 }

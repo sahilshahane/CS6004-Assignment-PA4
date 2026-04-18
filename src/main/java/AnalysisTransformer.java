@@ -62,6 +62,7 @@ public class AnalysisTransformer extends SceneTransformer {
                         preds = Collections.singleton(Statement.epsilon());
 
                     Set<boomerang.scope.Type> concreteTypes = new HashSet<>();
+
                     for (Statement predStmt : preds) {
                         Edge edge = new Edge(predStmt, stmt);
                         BackwardQuery query = BackwardQuery.make(edge, base);
@@ -73,8 +74,14 @@ public class AnalysisTransformer extends SceneTransformer {
                     }
 
                     for (boomerang.scope.Type type : concreteTypes) {
-                        System.out.println("  -> Possible Concrete Type: " + type);
+                        System.out.println(" -> Possible Concrete Type: " + type);
                     }
+
+                    if (concreteTypes.size() == 1) {
+                        // Scene.v().getOrMakeFastHierarchy().resolveConcreteDispatch();
+                        // directly replace the call
+                    }
+
                 }
 
             }
