@@ -19,7 +19,7 @@ rm -rf sootOutput
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
 
-javac -proc:none -cp ".:$LIB_CLASSPATH" -d "$OUTPUT_DIR" "$MAIN_CLASS.java" "AnalysisTransformer_boomerang.java"
+javac -proc:none -cp ".:$LIB_CLASSPATH" -d "$OUTPUT_DIR" "$MAIN_CLASS.java" "AnalysisTransformer.java"
 javac -cp ".:$OUTPUT_DIR:$LIB_CLASSPATH" "testcases/$TEST_CASE/Test.java"
 
 if [ $COMPILE_ONLY -eq 0 ]; then

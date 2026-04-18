@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import boomerang.scope.soot.BoomerangPretransformer;
 import soot.*;
 import soot.jimple.spark.SparkTransformer;
 import soot.options.Options;
@@ -14,8 +15,12 @@ public class PA4 {
 
         G.reset();
 
+        Options.v().setPhaseOption("cg.spark", "on");
+        Options.v().setPhaseOption("jb", "use-original-names:true");
+
         // 2. Setting Global Options (The Options.v() way)
         Options.v().set_keep_line_number(true);
+        Options.v().set_no_bodies_for_excluded(true);
 
         Options.v().set_prepend_classpath(true); // Equivalent to -pp
         Options.v().set_soot_classpath(classPath);
@@ -39,9 +44,6 @@ public class PA4 {
         excluded.add("jdk.*");
         Options.v().set_exclude(excluded);
 
-        // 3. Crucial: Don't load bodies for excluded classes
-        Options.v().set_no_bodies_for_excluded(true);
-
         // 3. Load Classes
         Scene.v().addBasicClass("java.lang.Object", SootClass.SIGNATURES);
         Scene.v().loadNecessaryClasses();
@@ -55,31 +57,15 @@ public class PA4 {
             }
         }
 
-        // 4. Force Call Graph Generation (Spark)
-        // This is the manual trigger that populates the Scene's CallGraph
-        Map<String, String> opt = new HashMap<>();
-        opt.put("enabled", "true");
-        opt.put("verbose", "true");
-        opt.put("on-fly-cg", "true");
-        opt.put("t", "0");
-        opt.put("field-sensitive", "true");
-        SparkTransformer.v().transform("cg.spark", opt);
-
-        Options.v().set_num_threads(1);
-
-        // 6. Verify Call Graph exists before starting Analysis
-        if (!Scene.v().hasCallGraph()) {
-            throw new RuntimeException("Spark failed to build a Call Graph!");
-        }
-
-        // 5. Register your Analysis
-        // We add it to 'wjtp' (Whole Jimple Transformation Pack)
-        var analysis = new AnalysisTransformer_boomerang();
+        AnalysisTransformer analysis = new AnalysisTransformer();
         PackManager.v().getPack("wjtp").add(new Transform("wjtp.analysis", analysis));
 
-        // 6. Execute
-        // DO NOT call soot.Main.main(args) here.
-        PackManager.v().runPacks();
+        PackManager.v().getPack("cg").apply();
+
+        BoomerangPretransformer.v().reset();
+        BoomerangPretransformer.v().apply();
+
+        PackManager.v().getPack("wjtp").apply();
 
         // Optional: Write out Jimple files to sootOutput/
         PackManager.v().writeOutput();
