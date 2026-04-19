@@ -1,8 +1,9 @@
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 
 import boomerang.scope.soot.BoomerangPretransformer;
 import soot.*;
@@ -11,8 +12,35 @@ import soot.options.Options;
 
 public class PA4 {
     public static void main(String[] args) {
-        String classPath = args[0];
-        String outputDir = args.length > 1 ? args[1] : "sootOutput";
+        String jsonInput = args.length > 0 ? args[0] : "{}";
+
+        String classPath = "";
+        String outputDir = "sootOutput";
+        boolean enableAnalysis = false;
+        boolean enableCheckInliner = false;
+        boolean enableUnreachable = false;
+        boolean enableInvokeMetrics = false;
+
+        try {
+            JSONParser parser = new JSONParser();
+            JSONObject config = (JSONObject) parser.parse(jsonInput);
+            if (config.containsKey("class_path")) {
+                classPath = (String) config.get("class_path");
+            }
+            if (config.containsKey("output_dir")) {
+                outputDir = (String) config.get("output_dir");
+            }
+
+            enableAnalysis = getBoolParam(config, "enable_transform_analysis");
+            enableCheckInliner = getBoolParam(config, "enable_transform_check_inliner");
+            enableUnreachable = getBoolParam(config, "enable_transform_unreachable");
+            enableInvokeMetrics = getBoolParam(config, "enable_transform_invoke_metrics");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("Failed to read configuration. Aborting.");
+            return;
+        }
 
         G.reset();
 
@@ -53,6 +81,8 @@ public class PA4 {
 
         // 3. Load Classes
         Scene.v().addBasicClass("java.lang.Object", SootClass.SIGNATURES);
+        Scene.v().addBasicClass("java.lang.Throwable", SootClass.SIGNATURES);
+        Scene.v().addBasicClass("MyRuntimeMetrics", SootClass.SIGNATURES);
         Scene.v().loadNecessaryClasses();
 
         // 4. Force your test classes to be Application Classes
@@ -68,9 +98,18 @@ public class PA4 {
         PackManager.v().getPack("cg").apply();
         BoomerangPretransformer.v().apply();
 
-        PackManager.v().getPack("wjtp").add(new Transform("wjtp.analysis", new AnalysisTransformer()));
-        PackManager.v().getPack("wjtp").add(new Transform("wjtp.check_inliner", new CheckInliner()));
-        PackManager.v().getPack("wjtp").add(new Transform("wjtp.unreachable", new UnreachableMethodRemover()));
+        if (enableAnalysis) {
+            PackManager.v().getPack("wjtp").add(new Transform("wjtp.analysis", new AnalysisTransformer()));
+        }
+        if (enableCheckInliner) {
+            PackManager.v().getPack("wjtp").add(new Transform("wjtp.check_inliner", new CheckInliner()));
+        }
+        if (enableUnreachable) {
+            PackManager.v().getPack("wjtp").add(new Transform("wjtp.unreachable", new UnreachableMethodRemover()));
+        }
+        if (enableInvokeMetrics) {
+            PackManager.v().getPack("wjtp").add(new Transform("wjtp.invoke_metrics", new InvokeMetricCollector()));
+        }
 
         // PackManager.v().getPack("wjtp").apply();
         PackManager.v().runPacks();
@@ -81,5 +120,15 @@ public class PA4 {
 
         Options.v().set_output_format(Options.output_format_class);
         PackManager.v().writeOutput();
+    }
+
+    private static boolean getBoolParam(JSONObject config, String key) {
+        if (!config.containsKey(key))
+            return false;
+        Object val = config.get(key);
+        if (val instanceof Boolean) {
+            return ((Boolean) val).booleanValue();
+        }
+        return false;
     }
 }

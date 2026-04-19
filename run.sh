@@ -12,6 +12,11 @@ fi
 COMPILE_ONLY=0
 NO_BUILD=0
 SOOT_OUTPUT_DIR="sootOutput"
+ENABLE_ANALYSIS=true
+ENABLE_CHECK_INLINER=true
+ENABLE_UNREACHABLE=true
+ENABLE_INVOKE_METRICS=false
+
 while [ "$#" -gt 0 ]; do
     case "$1" in
         --compile-only)
@@ -26,6 +31,22 @@ while [ "$#" -gt 0 ]; do
             SOOT_OUTPUT_DIR="$2"
             shift 2
             ;;
+        --no-analysis)
+            ENABLE_ANALYSIS=false
+            shift
+            ;;
+        --no-check-inliner)
+            ENABLE_CHECK_INLINER=false
+            shift
+            ;;
+        --no-unreachable)
+            ENABLE_UNREACHABLE=false
+            shift
+            ;;
+        --invoke-metrics)
+            ENABLE_INVOKE_METRICS=true
+            shift
+            ;;
         *)
             shift
             ;;
@@ -34,23 +55,28 @@ done
 
 OUTPUT_DIR="class_outputs"
 
-rm -rf $SOOT_OUTPUT_DIR
-rm -rf editedClasses
+sudo rm -rf $SOOT_OUTPUT_DIR
+sudo rm -rf editedClasses
 
 if [ $NO_BUILD -eq 0 ]; then
-    rm -rf "$OUTPUT_DIR"
+    sudo rm -rf "$OUTPUT_DIR"
     mkdir -p "$OUTPUT_DIR"
-    rm -rf "$TEST_CASE/*.class"
+    sudo rm -rf "$TEST_CASE/*.class"
 
     # Build the analysis tool
-    javac -proc:none -cp ".:$LIB_CLASSPATH" -d "$OUTPUT_DIR" "$MAIN_CLASS.java" "AnalysisTransformer.java"
+    javac -proc:none -cp ".:$LIB_CLASSPATH" -d "$OUTPUT_DIR" "$MAIN_CLASS.java" "AnalysisTransformer.java" "InvokeMetricCollector.java" "UnreachableMethodRemover.java" "MyRuntimeMetrics.java"
 
+    # Copy MyRuntimeMetrics to test case folder so it becomes part of the application for Soot to process
+    sudo cp "MyRuntimeMetrics.java" "$TEST_CASE/"
+    
     # Build the testcase
-    javac -cp ".:$OUTPUT_DIR:$LIB_CLASSPATH" "$TEST_CASE/Test.java"
+    javac -cp ".:$OUTPUT_DIR:$LIB_CLASSPATH" "$TEST_CASE/Test.java" "$TEST_CASE/MyRuntimeMetrics.java"
 fi
 
 
-java -cp ".:$OUTPUT_DIR:$LIB_CLASSPATH" "$MAIN_CLASS" "$TEST_CASE" "$SOOT_OUTPUT_DIR"
+JSON_ARGS="{\"class_path\":\"$TEST_CASE\",\"output_dir\":\"$SOOT_OUTPUT_DIR\",\"enable_transform_analysis\":$ENABLE_ANALYSIS,\"enable_transform_check_inliner\":$ENABLE_CHECK_INLINER,\"enable_transform_unreachable\":$ENABLE_UNREACHABLE,\"enable_transform_invoke_metrics\":$ENABLE_INVOKE_METRICS}"
+
+java -cp ".:$OUTPUT_DIR:$LIB_CLASSPATH" "$MAIN_CLASS" "$JSON_ARGS"
 
 
 # if [ $? -eq 0 ]; then
