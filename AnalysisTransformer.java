@@ -201,7 +201,7 @@ class Helper {
         // check if static version of the function call already exist
         // if the name contain resolvedMethod.getName() + "_gen_compile_time_" , i.e new
         // method name
-        var modifyingClass = false ? declaringClass : resolvedMethod.getDeclaringClass();
+        var modifyingClass = true ? declaringClass : resolvedMethod.getDeclaringClass();
 
         List<Type> staticParamTypes = new ArrayList<>();
         staticParamTypes.add(resolvedMethod.getDeclaringClass().getType()); // The explicit 'this'

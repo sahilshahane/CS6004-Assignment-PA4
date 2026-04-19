@@ -58,7 +58,7 @@ def parse_invoke_metrics(filepath):
                 metrics['Instance Calls'] = int(line.split(':')[1].strip())
     return metrics
 
-def plot_comparison(test_case, metric_filename, title, y_label, baseline_val, optimized_val):
+def plot_comparison(test_case, metric_filename, title, y_label, baseline_val, optimized_val, custom_text=None):
     out_dir = os.path.join(GRAPHS_DIR, test_case)
     os.makedirs(out_dir, exist_ok=True)
     
@@ -73,9 +73,12 @@ def plot_comparison(test_case, metric_filename, title, y_label, baseline_val, op
     plt.title(title)
     plt.ylabel(y_label)
     
-    for bar in bars:
+    for i, bar in enumerate(bars):
         yval = bar.get_height()
-        display_val = f"{yval:.5f}" if isinstance(yval, float) and not yval.is_integer() else str(int(yval))
+        if custom_text and i < len(custom_text):
+            display_val = custom_text[i]
+        else:
+            display_val = f"{yval:.5f}" if isinstance(yval, float) and not yval.is_integer() else str(int(yval))
         plt.text(bar.get_x() + bar.get_width()/2, yval, display_val, ha='center', va='bottom')
         
     plt.margins(y=0.15)
@@ -183,11 +186,15 @@ def main():
         # 9. Execution Speedup
         b_time = b_perf.get('task-clock', 0)
         o_time = o_perf.get('task-clock', 0)
-        if b_time > 0:
+        if b_time > 0 and o_time > 0:
             speedup_pct = ((b_time - o_time) / b_time) * 100.0  # Percentage difference (how much faster)
+            opt_val = 100.0 + speedup_pct
+            custom_labels = ["100", f"{opt_val:.2f} ({'+' if speedup_pct >= 0 else ''}{speedup_pct:.2f}%)"]
         else:
-            speedup_pct = 0.0
-        plot_comparison(test_case, "speedup", "Execution Time Difference (Percentage)", "Difference (%)", 0.0, speedup_pct)
+            opt_val = 0.0
+            custom_labels = ["100", "0 (0.00%)"]
+            
+        plot_comparison(test_case, "speedup", "Execution Time Difference (Percentage)", "Normalized Progress", 100.0, opt_val, custom_labels)
 
     print(f"Successfully generated all graphs in ./{GRAPHS_DIR}/")
 

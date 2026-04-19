@@ -34,11 +34,11 @@
             <version>${boomerang.version}</version>
         </dependency>
         
-        <dependency>
+        <!-- <dependency>
             <groupId>de.fraunhofer.iem</groupId>
             <artifactId>idealPDS</artifactId>
             <version>${boomerang.version}</version>
-        </dependency>
+        </dependency> -->
 
         <!-- https://mvnrepository.com/artifact/com.googlecode.json-simple/json-simple -->
         <dependency>
