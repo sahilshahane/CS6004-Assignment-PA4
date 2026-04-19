@@ -1,7 +1,11 @@
 
 class A {
+    static int recursion_stopper = 0;
     public void dosome(A that) {
-        that.dosome(this);
+        if (recursion_stopper < 5) {
+            recursion_stopper++;
+            that.dosome(that);
+        }
     }
 }
 
