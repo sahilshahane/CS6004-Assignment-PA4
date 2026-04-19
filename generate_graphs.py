@@ -127,12 +127,12 @@ def main():
         tc_dir = os.path.join(PERF_DIR, test_case)
         
         # Find latest perf files
-        baseline_perfs = sorted(glob.glob(os.path.join(tc_dir, "baseline_perf_results_*.txt")))
-        optimized_perfs = sorted(glob.glob(os.path.join(tc_dir, "optimized_perf_results_*.txt")))
+        baseline_perfs = sorted(glob.glob(os.path.join(tc_dir, "baseline_perf_results*.txt")))
+        optimized_perfs = sorted(glob.glob(os.path.join(tc_dir, "optimized_perf_results*.txt")))
         
         # Find latest invoke metrics
-        baseline_invokes = sorted(glob.glob(os.path.join(tc_dir, "baseline_invoke_metrics_*.txt")))
-        optimized_invokes = sorted(glob.glob(os.path.join(tc_dir, "optimized_invoke_metrics_*.txt")))
+        baseline_invokes = sorted(glob.glob(os.path.join(tc_dir, "baseline_invoke_metrics*.txt")))
+        optimized_invokes = sorted(glob.glob(os.path.join(tc_dir, "optimized_invoke_metrics*.txt")))
         
         if not (baseline_perfs and optimized_perfs):
             print(f"Skipping {test_case}: Missing perf results")
@@ -183,8 +183,11 @@ def main():
         # 9. Execution Speedup
         b_time = b_perf.get('task-clock', 0)
         o_time = o_perf.get('task-clock', 0)
-        speedup = (b_time / o_time) if o_time > 0 else 0
-        plot_comparison(test_case, "speedup", "Execution Speedup", "Speedup (Baseline=1.0x)", 1.0, speedup)
+        if b_time > 0:
+            speedup_pct = ((b_time - o_time) / b_time) * 100.0  # Percentage difference (how much faster)
+        else:
+            speedup_pct = 0.0
+        plot_comparison(test_case, "speedup", "Execution Time Difference (Percentage)", "Difference (%)", 0.0, speedup_pct)
 
     print(f"Successfully generated all graphs in ./{GRAPHS_DIR}/")
 
