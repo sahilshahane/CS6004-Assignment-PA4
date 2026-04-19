@@ -17,7 +17,7 @@ rm -rf "iterative_runs/$TEST_NAME"/*
 rm -rf sootOutput_iterative
 mv sootOutput sootOutput_iterative
 cp -r sootOutput_iterative "iterative_runs/$TEST_NAME/output_run$RUN"
-mkdir -p "perf_result"
+mkdir -p "perf_result/$TEST_NAME"
 # get time to run the test case without soot optimization
 
 
@@ -57,14 +57,19 @@ echo "Running the final compiled code"
 
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 
-./run_vanila.sh $TEST_CASE "perf_result/${TEST_NAME}_final_${TIMESTAMP}.txt"
+ORIG_PARANOID=$(cat /proc/sys/kernel/perf_event_paranoid)
+sudo sh -c 'echo -1 > /proc/sys/kernel/perf_event_paranoid'
 
-echo 0 > /proc/sys/kernel/nmi_watchdog
+./run_vanila.sh $TEST_CASE "perf_result/$TEST_NAME/baseline_${TIMESTAMP}.txt"
+
+sudo sh -c 'echo 0 > /proc/sys/kernel/nmi_watchdog'
 # perf stat -e cycles,instructions,cache-misses java -Xint -cp $TEST_CASE Test 
 # store perf stat output in a file , perf_result/Timestamp.txt
 # each iteration 
 # mkdir -p $TIMESTAMP
 # append to the file 
-echo "Optimized TEST CASE: $TEST_CASE" >> "perf_result/${TEST_NAME}_final_${TIMESTAMP}.txt"
-perf stat -d -d -r 5 java -Xint -cp sootOutput Test |& tee -a "perf_result/${TEST_NAME}_final_${TIMESTAMP}.txt"
-echo 1 > /proc/sys/kernel/nmi_watchdog
+echo "Optimized TEST CASE: $TEST_CASE" >> "perf_result/$TEST_NAME/optimized_${TIMESTAMP}.txt"
+perf stat -d -d -r 5 java -Xint -cp sootOutput Test |& tee -a "perf_result/$TEST_NAME/optimized_${TIMESTAMP}.txt"
+sudo sh -c 'echo 1 > /proc/sys/kernel/nmi_watchdog'
+
+sudo sh -c "echo $ORIG_PARANOID > /proc/sys/kernel/perf_event_paranoid"
