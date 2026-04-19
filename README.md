@@ -2,8 +2,8 @@ Metrics to care for
 - [x] Branch miss Rate
 - [x] No of branches 
 - [ ] Vtable/ITable Lookup Count:
-- [ ] No. of Static call count
-- [ ] No. of Instance call count
+- [x] No. of Static call count
+- [x] No. of Instance call count
 - [x] L1 cache miss (data + instruction)
 - [x] L2 cache miss
 - [x] L3 cache miss
