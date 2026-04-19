@@ -28,3 +28,6 @@ replay_pid*
 class_outputs/
 sootOutput/
 perf_result/
+sootOutput_baseline_metrics/
+sootOutput_metrics/
+iterative_runs/
