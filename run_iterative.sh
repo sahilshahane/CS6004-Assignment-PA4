@@ -24,8 +24,8 @@ mkdir -p "perf_result/$TEST_NAME"
 while true; do
     RUN=$((RUN + 1))
 
-    if [ $RUN -gt 10 ]; then
-        echo "--> Max iterations (10) reached. Stopping."
+    if [ $RUN -gt 15 ]; then
+        echo "--> Max iterations (15) reached. Stopping."
         sudo cp -r sootOutput_iterative sootOutput
         sudo rm -rf sootOutput_iterative
         break
