@@ -1,8 +1,11 @@
 class T {
+    static int recursion_stopper = 0;
     public void A(T a1, T a2, T a3) {
         System.out.println("Print something");
-
-        a1.A(a1, a2, a3);
+        if (recursion_stopper < 5) {
+            recursion_stopper++;
+            a1.A(a1, a2, a3);
+        }
     }
 }
 
